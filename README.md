@@ -1,4 +1,4 @@
-# WebLoginBrute - Web登录暴力破解工具
+# WebLoginBrute
 
 **版本：0.0.14**
 
