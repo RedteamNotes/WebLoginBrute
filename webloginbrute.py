@@ -407,6 +407,14 @@ class WebLoginBrute:
 
     def _cleanup(self):
         """资源清理函数"""
+        with self._shutdown_lock:
+            if not self._cleanup_on_exit and self.stats['start_time'] and not self.success.is_set():
+                self._save_progress()
+            
+            if self._shutdown_requested:
+                return # 防止重复清理
+            self._shutdown_requested = True
+
         try:
             # 关闭线程池
             if self.executor:
@@ -855,7 +863,11 @@ class WebLoginBrute:
                     self.form_analyzed = True
                     return
 
-                fields = {inp.get('name'): inp.get('value', '') for inp in form.find_all('input') if inp.get('name')}
+                fields = {
+                    inp.get('name'): inp.get('value', '') 
+                    for inp in form.find_all('input') 
+                    if isinstance(inp, Tag) and inp.get('name')
+                }
                 
                 logging.info("表单字段自动探测结果：")
                 for k, v in fields.items():
