@@ -1,4 +1,4 @@
-# WebLoginBrute 0.0.14
+# WebLoginBrute 0.14
 
 为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发和会话恢复功能，支持高并发操作、智能重试机制和多级对抗策略。
 
