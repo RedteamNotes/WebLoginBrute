@@ -2,7 +2,6 @@
 
 import requests
 import sys
-import warnings
 from bs4 import BeautifulSoup
 import argparse
 
@@ -99,7 +98,7 @@ if __name__ == '__main__':
 	)
 
 	# one username and one password
-	if (args.usernames == None and args.passwords == None):
+	if args.username and args.password:
 		reqSess = requests.session()
 		
 		if (args.verbosity != None):
@@ -111,59 +110,79 @@ if __name__ == '__main__':
 
 		if (found):
 			printSuccess(args.username, args.password)
-			sys.exit(1)
+			sys.exit(0)
 		
-
 	# one username and more passwords
-	if (args.usernames == None and args.password == None):
-		with open(args.passwords, 'rb') as passfile:
-			for passwd in passfile.readlines():
-				reqSess = requests.session()
-				
-				if (args.verbosity != None):
-					found = tryLogin(args.username, passwd.decode().strip(), args.url, args.csrfname, args.message, reqSess)
-					print()
-				else:
-					token = getToken(args.url, args.csrfname, reqSess)
-					found = connect(args.username, passwd.decode().strip(), args.url, args.csrfname, token, args.message, reqSess)
+	elif args.username and args.passwords:
+		try:
+			with open(args.passwords, 'rb') as passfile:
+				passwords = [p.decode().strip() for p in passfile.readlines()]
+		except FileNotFoundError:
+			print("[-] Error: Passwords file not found at '{}'".format(args.passwords))
+			sys.exit(1)
 
-				if (found):
-					printSuccess(args.username, passwd.decode().strip())
-					sys.exit(1)
+		for passwd in passwords:
+			reqSess = requests.session()
+			
+			if (args.verbosity != None):
+				found = tryLogin(args.username, passwd, args.url, args.csrfname, args.message, reqSess)
+				print()
+			else:
+				token = getToken(args.url, args.csrfname, reqSess)
+				found = connect(args.username, passwd, args.url, args.csrfname, token, args.message, reqSess)
+
+			if (found):
+				printSuccess(args.username, passwd)
+				sys.exit(0)
 	
 	# more usernames and one password
-	if (args.username == None and args.passwords == None):
-		with open(args.usernames, 'rb') as userfile:
-			for user in userfile.readlines():
+	elif args.usernames and args.password:
+		try:
+			with open(args.usernames, 'rb') as userfile:
+				users = [u.decode().strip() for u in userfile.readlines()]
+		except FileNotFoundError:
+			print("[-] Error: Usernames file not found at '{}'".format(args.usernames))
+			sys.exit(1)
+			
+		for user in users:
+			reqSess = requests.session()
+			
+			if (args.verbosity != None):
+				found = tryLogin(user, args.password, args.url, args.csrfname, args.message, reqSess)
+				print()
+			else:
+				token = getToken(args.url, args.csrfname, reqSess)
+				found = connect(user, args.password, args.url, args.csrfname, token, args.message, reqSess)
+
+			if (found):
+				printSuccess(user, args.password)
+				sys.exit(0)
+	
+	# more usernames and more passwords
+	elif args.usernames and args.passwords:	
+		try:
+			with open(args.usernames, 'rb') as userfile:
+				users = [u.decode().strip() for u in userfile.readlines()]
+			with open(args.passwords, 'rb') as passfile:
+				passwords = [p.decode().strip() for p in passfile.readlines()]
+		except FileNotFoundError as e:
+			if e.filename == args.usernames:
+				print("[-] Error: Usernames file not found at '{}'".format(args.usernames))
+			else:
+				print("[-] Error: Passwords file not found at '{}'".format(args.passwords))
+			sys.exit(1)
+
+		for user in users:
+			for passwd in passwords:
 				reqSess = requests.session()
 				
 				if (args.verbosity != None):
-					found = tryLogin(user.decode().strip(), args.password, args.url, args.csrfname, args.message, reqSess)
+					found = tryLogin(user, passwd, args.url, args.csrfname, args.message, reqSess)
 					print()
 				else:
 					token = getToken(args.url, args.csrfname, reqSess)
-					found = connect(user.decode().strip(), args.password, args.url, args.csrfname, token, args.message, reqSess)
+					found = connect(user, passwd, args.url, args.csrfname, token, args.message, reqSess)
 
 				if (found):
-					printSuccess(user.decode().strip(), args.password)
-					sys.exit(1)
-
-	
-	# more usernames and more passwords
-	if (args.username == None and args.password == None):	
-		with open(args.usernames, 'rb') as userfile:
-			with open(args.passwords, 'rb') as passfile:
-				for user in userfile.readlines():
-					for passwd in passfile.readlines():
-						reqSess = requests.session()
-						
-						if (args.verbosity != None):
-							found = tryLogin(user.decode().strip(), passwd.decode().strip(), args.url, args.csrfname, args.message, reqSess)
-							print()
-						else:
-							token = getToken(args.url, args.csrfname, reqSess)
-							found = connect(user.decode().strip(), passwd.decode().strip(), args.url, args.csrfname, token, args.message, reqSess)
-
-						if (found):
-							printSuccess(user.decode().strip(), passwd.decode().strip())
-							sys.exit(1)
+					printSuccess(user, passwd)
+					sys.exit(0)
