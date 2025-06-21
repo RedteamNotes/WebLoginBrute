@@ -31,17 +31,16 @@
 
 ## :gear: 安装
 
-1.  克隆本仓库:
+1.  创建并激活虚拟环境（推荐标准做法）:
     ```bash
-    git clone https://github.com/your-repo/WebLoginBrute.git
-    cd WebLoginBrute
+    python3 -m venv venv
+    source venv/bin/activate  # Windows下为 venv\Scripts\activate
     ```
 
 2.  安装依赖:
     ```bash
     pip install -r requirements.txt
     ```
-    *(建议在Python虚拟环境中使用)*
 
 ---
 
@@ -53,8 +52,8 @@ WebLoginBrute可以通过两种方式进行配置：**命令行参数**或**YAML
 
 ```bash
 python -m webloginbrute \
-    --form-url "http://test.server/login" \
-    --submit-url "http://test.server/login/authenticate" \
+    --form-url "https://redteamnotes.com/login" \
+    --submit-url "https://redteamnotes.com/login/authenticate" \
     --username-file "wordlists/users.txt" \
     --password-file "wordlists/passwords.txt" \
     --csrf "csrf_token" \
@@ -68,8 +67,8 @@ python -m webloginbrute \
 
     ```yaml
     # config.yaml
-    form_url: "http://test.server/login"
-    submit_url: "http://test.server/login/authenticate"
+    form_url: "https://redteamnotes.com/login"
+    submit_url: "https://redteamnotes.com/login/authenticate"
     username_file: "wordlists/users.txt"
     password_file: "wordlists/passwords.txt"
     csrf: "csrf_token"
@@ -100,9 +99,3 @@ python -m webloginbrute \
 ## :warning: 免责声明
 
 本工具仅供授权的渗透测试和安全研究使用。任何未经授权的、非法的攻击行为，开发者不承担任何责任。请遵守当地法律法规。
-
----
-
-## :handshake: 贡献
-
-欢迎任何形式的贡献！无论是提交Issue、发起Pull Request，还是改进文档，我们都非常欢迎。

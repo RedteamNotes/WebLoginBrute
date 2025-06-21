@@ -18,14 +18,16 @@ git clone https://github.com/your-repo/WebLoginBrute.git
 cd WebLoginBrute
 ```
 
-然后，安装所有必需的Python依赖包。我们强烈建议你在一个Python虚拟环境（`venv`）中进行安装，以避免与系统库冲突。
+然后，创建并激活虚拟环境（标准做法）：
 
 ```bash
-# (可选，但推荐) 创建并激活虚拟环境
 python3 -m venv venv
-source venv/bin/activate  # 在Windows上使用 `venv\Scripts\activate`
+source venv/bin/activate  # Windows下为 venv\Scripts\activate
+```
 
-# 安装依赖
+安装所有必需的Python依赖包：
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -48,8 +50,8 @@ pip install -r requirements.txt
 
 ```bash
 python -m webloginbrute \
-    --form-url "http://test.server/login" \
-    --submit-url "http://test.server/login/authenticate" \
+    --form-url "https://redteamnotes.com/login" \
+    --submit-url "https://redteamnotes.com/login/authenticate" \
     --username-file "wordlists/users.txt" \
     --password-file "wordlists/passwords.txt"
 ```
