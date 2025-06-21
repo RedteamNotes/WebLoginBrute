@@ -1,0 +1,44 @@
+# WebLoginBrute 配置文件示例
+# 版本: 0.0.14
+
+# CSRFBrute 配置文件示例
+# 请根据实际目标修改以下参数
+
+# 目标配置
+target_url: "https://redteamnotes.com/login"                    # 登录页面URL
+success_redirect: "https://redteamnotes.com/dashboard"          # 登录成功后的重定向URL
+failure_redirect: "https://redteamnotes.com/login"              # 登录失败后的重定向URL
+
+# 用户名和密码配置
+username_list: "usernames.txt"                                  # 用户名列表文件
+password_list: "passwords.txt"                                  # 密码列表文件
+
+# 线程配置
+threads: 10                                                     # 并发线程数
+
+# 代理配置（可选）
+proxy: null                                                     # 代理服务器地址，如 "http://127.0.0.1:8080"
+
+# 对抗级别配置
+aggression_level: "A1"                                          # 对抗级别: A0(全速) A1(低) A2(中) A3(高)
+
+# 可选参数 - 延迟配置
+min_delay: 1.0                                                  # 最小延迟时间(秒)
+max_delay: 5.0                                                  # 最大延迟时间(秒)
+jitter_factor: 0.3                                              # 抖动因子(0-1)
+
+# 可选参数 - 智能延迟配置
+enable_smart_delay: true                                        # 启用智能延迟
+enable_session_pool: true                                       # 启用会话池管理
+session_lifetime: 300                                           # 会话生命周期(秒)
+
+# 可选参数 - 防护检测配置
+enable_rate_limit_detection: true                               # 启用频率限制检测
+enable_captcha_detection: true                                  # 启用验证码检测
+
+# 可选参数 - 进度保存
+progress_file: "bruteforce_progress.json"                       # 进度保存文件
+
+# 可选参数 - 日志配置
+log_level: "INFO"                                               # 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_file: "webloginbrute.log"                                       # 日志文件路径
