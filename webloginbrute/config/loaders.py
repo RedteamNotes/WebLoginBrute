@@ -85,8 +85,8 @@ def parse_args() -> Tuple[argparse.Namespace, dict]:
     required.add_argument("-p", "--passwords", help="密码字典文件路径")
 
     optional.add_argument("--csrf", help="CSRF Token字段名")
-    optional.add_argument("--login_field", help="额外的登录字段名")
-    optional.add_argument("--login_value", help="额外的登录字段值")
+    optional.add_argument("--login-field", dest="login_field", help="额外的登录字段名")
+    optional.add_argument("--login-value", dest="login_value", help="额外的登录字段值")
     optional.add_argument("--cookie", help="Cookie文件路径")
 
     performance.add_argument("-t", "--threads", type=int, help="并发线程数")
@@ -99,7 +99,7 @@ def parse_args() -> Tuple[argparse.Namespace, dict]:
 
     operation.add_argument("--resume", action="store_true", help="从上次中断的地方继续")
     operation.add_argument("-l", "--log", help="进度文件路径")
-    operation.add_argument("--dry_run", action="store_true", help="测试模式，不实际发送请求")
+    operation.add_argument("--dry-run", dest="dry_run", action="store_true", help="测试模式，不实际发送请求")
     operation.add_argument("-v", "--verbose", action="store_true", help="详细输出")
 
     # 获取所有已定义参数的默认值
