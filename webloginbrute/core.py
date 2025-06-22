@@ -9,13 +9,18 @@ from threading import Event
 from typing import List, Optional
 
 from .config import Config
-from .exceptions import RateLimitError, MemoryError, HealthCheckError
+from .exceptions import (
+    RateLimitError,
+    MemoryError,
+    HealthCheckError,
+    ConfigurationError,
+)
 from .http_client import HttpClient
 from .logger import setup_logging
 from .parsers import analyze_form_fields, contains_captcha, extract_token
 from .reporting import StatsManager
 from .state import StateManager
-from .wordlists import load_wordlist
+from .wordlists import load_wordlist, load_wordlist_as_list
 from .memory_manager import get_memory_manager, MemoryConfig
 from .session_manager import get_session_rotator, SessionConfig
 from .health_check import get_health_checker, run_health_checks
@@ -28,54 +33,60 @@ class WebLoginBrute:
     """
 
     def __init__(self, config: Config) -> None:
+        """
+        初始化核心对象和配置。
+        构造函数应保持轻量，只进行必要的属性赋值和对象创建。
+        """
         if not all([config.url, config.action, config.users, config.passwords]):
             raise ValueError("核心配置参数不能为空")
+
         self.config = config
         setup_logging(config.verbose)
 
-        # 初始化内存管理器
+        # 基于主配置创建模块化配置
         memory_config = MemoryConfig(
-            max_memory_mb=getattr(config, "max_memory_mb", 500),
-            warning_threshold=getattr(config, "memory_warning_threshold", 0.8),
-            critical_threshold=getattr(config, "memory_critical_threshold", 0.9),
-            cleanup_interval=getattr(config, "memory_cleanup_interval", 60),
+            max_memory_mb=self.config.max_memory_mb,
+            warning_threshold=self.config.memory_warning_threshold / 100.0,
+            critical_threshold=self.config.memory_critical_threshold / 100.0,
+            cleanup_interval=self.config.memory_cleanup_interval,
         )
+        session_config = SessionConfig(
+            rotation_interval=self.config.session_rotation_interval,
+            session_lifetime=self.config.session_lifetime,
+            max_session_pool_size=self.config.max_session_pool_size,
+            enable_rotation=self.config.enable_session_rotation,
+            rotation_strategy=self.config.rotation_strategy,
+        )
+
+        # 初始化核心组件
         self.memory_manager = get_memory_manager()
         self.memory_manager.config = memory_config
 
-        # 初始化会话轮换器
-        session_config = SessionConfig(
-            rotation_interval=getattr(config, "session_rotation_interval", 300),
-            session_lifetime=getattr(config, "session_lifetime", 600),
-            max_session_pool_size=getattr(config, "max_session_pool_size", 100),
-            enable_rotation=getattr(config, "enable_session_rotation", True),
-            rotation_strategy=getattr(config, "rotation_strategy", "time"),
-        )
         self.session_rotator = get_session_rotator()
         self.session_rotator.config = session_config
 
-        # 初始化其他组件
         self.http = HttpClient(config)
         self.state = StateManager(config)
         self.stats = StatsManager()
+        self.health_checker = get_health_checker(config)
+
+        # 内部状态控制
         self.success = Event()
         self.executor: Optional[ThreadPoolExecutor] = None
         self._shutdown_requested = False
 
-        # 初始化健康检查器
-        self.health_checker = get_health_checker(config)
-
-        # 注册信号处理器
+        # 注册信号处理器，确保能优雅关闭
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
-        # 启动内存监控
+    def setup(self):
+        """
+        设置和启动监控、回调等运行时组件。
+        此方法在 `run` 的开始阶段被调用。
+        """
+        logging.info("正在设置运行时组件...")
         self.memory_manager.start_monitoring()
-
-        # 添加内存清理回调
         self.memory_manager.add_cleanup_callback(self._on_memory_cleanup)
-
-        # 注册健康检查回调
         self._register_health_check_callbacks()
 
     def _signal_handler(self, signum, frame):
@@ -142,18 +153,12 @@ class WebLoginBrute:
 
     def run(self) -> None:
         """主运行方法"""
-        if not all(
-            [
-                self.config.url,
-                self.config.action,
-                self.config.users,
-                self.config.passwords,
-            ]
-        ):
-            raise ValueError("核心配置参数不能为空")
         logging.info("开始WebLoginBrute主流程...")
 
         try:
+            # 启动运行时组件
+            self.setup()
+
             # 执行初始健康检查
             if self.config.enable_health_check:
                 self._perform_initial_health_check()
@@ -252,48 +257,22 @@ class WebLoginBrute:
     def _initialize_components(self):
         """初始化组件"""
         self.http.pre_resolve_targets([self.config.url, self.config.action])
-        logging.info("组件初始化完成")
+        logging.info("组件初始化完成。")
 
     def _load_wordlists(self):
-        """加载字典文件"""
-        logging.info("开始加载字典文件...")
-
+        """加载用户和密码字典"""
+        logging.info("正在加载字典文件...")
         try:
-            # 使用内存上下文管理器
-            with self.memory_manager.memory_context():
-                self.usernames = list(load_wordlist(self.config.users, self.config))
-                self.passwords = list(load_wordlist(self.config.passwords, self.config))
-
-            logging.info(
-                f"字典加载完成: {len(self.usernames)} 个用户名, {len(self.passwords)} 个密码"
+            # 使用关键字参数，避免 linter 误报
+            self.users = load_wordlist_as_list(path=self.config.users, config=self.config)
+            self.passwords = load_wordlist_as_list(
+                path=self.config.passwords, config=self.config
             )
-
-            # 恢复进度
-            loaded_attempts, stats_from_file = self.state.load_progress()
-            if stats_from_file:
-                self.stats.update_from_progress(stats_from_file)
-
-            # 过滤已尝试的组合
-            if loaded_attempts:
-                original_count = len(self.usernames) * len(self.passwords)
-                self.usernames = [
-                    u
-                    for u in self.usernames
-                    if any((u, p) not in loaded_attempts for p in self.passwords)
-                ]
-                self.passwords = [
-                    p
-                    for p in self.passwords
-                    if any((u, p) not in loaded_attempts for u in self.usernames)
-                ]
-                remaining_count = len(self.usernames) * len(self.passwords)
-                logging.info(
-                    f"进度恢复完成: 已尝试 {original_count - remaining_count} 个组合，剩余 {remaining_count} 个"
-                )
-
-        except Exception as e:
-            logging.error(f"字典加载失败: {e}")
-            raise
+            logging.info(
+                f"成功加载 {len(self.users)} 个用户名和 {len(self.passwords)} 个密码。"
+            )
+        except (FileNotFoundError, ValueError, MemoryError) as e:
+            raise ConfigurationError(f"加载字典失败: {e}") from e
 
     def _setup_executor(self):
         """设置线程池"""
@@ -305,7 +284,7 @@ class WebLoginBrute:
 
     def _execute_brute_force(self):
         """执行暴力破解"""
-        self._brute_force(self.usernames, self.passwords)
+        self._brute_force(self.users, self.passwords)
 
     def _handle_interruption(self):
         """处理用户中断"""
@@ -514,8 +493,24 @@ class WebLoginBrute:
             logging.error(f"定期健康检查失败: {e}")
 
     def _try_login(self, username: str, password: str) -> bool:
-        if self.success.is_set() or self._shutdown_requested:
+        """
+        尝试一次登录。
+        在 dry_run 模式下，将跳过实际的网络请求。
+        """
+        if self.config.dry_run:
+            logging.info(f"[DRY RUN] 模拟登录: 用户名='{username}', 密码='***'")
+            # 使用正确的方法更新尝试次数
+            self.stats.update_attempt(username, password="***")
+            # 在 dry_run 模式下，我们无法判断是否成功，因此总是返回 False
+            # 并短暂休眠以模拟网络延迟，避免CPU空转。
+            time.sleep(0.05)
             return False
+
+        if self.success.is_set():
+            return False
+
+        self.stats.update_attempt(username, password)
+
         try:
             resp = self._get_login_page(username, password)
             if not resp or not resp.text:

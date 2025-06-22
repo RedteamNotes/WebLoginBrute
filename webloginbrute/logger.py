@@ -8,7 +8,6 @@ WebLoginBrute 增强日志系统
 import json
 import logging
 import logging.handlers
-import sys
 import time
 import threading
 from datetime import datetime
