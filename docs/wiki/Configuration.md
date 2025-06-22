@@ -92,7 +92,7 @@ python -m webloginbrute \
 | `csrf` | `-s`, `--csrf` | `string` | CSRF Token 在表单中的 `name` 属性值。 |
 | `cookie` | `-c`, `--cookie` | `string` | 包含预设 Cookie 的文件路径。 |
 | `resume` | `-r`, `--resume` | `boolean` | 从上次中断处恢复爆破。默认为 `false`。 |
-| `log` | `-g`, `--log` | `string` | 指定进度文件的保存路径。 |
+| `log` | `-l`, `--log` | `string` | 指定进度文件的保存路径。 |
 | `dry_run` | `--dry-run` | `boolean` | 测试模式，不实际发送请求。|
 | `verbose` | `-v`, `--verbose` | `boolean` | 启用详细日志输出。 |
 
@@ -119,7 +119,7 @@ python -m webloginbrute \
 | `--timeout` | `-T` | 请求超时时间（秒） | 30 | `-T 60` |
 | `--threads` | `-t` | 并发线程数 | 5 | `-t 10` |
 | `--resume` | `-r` | 断点续扫 | False | `-r` |
-| `--log` | `-g` | 进度文件路径 | bruteforce_progress.json | `-g state.json` |
+| `--log` | `-l` | 进度文件路径 | bruteforce_progress.json | `-l state.json` |
 | `--aggressive` | `-A` | 对抗级别 | A1 | `-A A2` |
 | `--dry-run` | 无 | 测试模式 | False | `--dry-run` |
 | `--verbose` | `-v` | 详细输出 | False | `-v` |
@@ -211,11 +211,11 @@ HTTP请求超时时间（秒）。网络较慢时可适当增加。
 -r  # 启用断点续扫
 ```
 
-#### `--log` / `-g`
+#### `--log` / `-l`
 指定进度文件的保存路径。默认保存为 `bruteforce_progress.json`。
 
 ```bash
--g my_progress.json
+-l my_progress.json
 ```
 
 ### 输出控制

@@ -72,7 +72,7 @@ class Config(BaseModel):
         parser.add_argument('-T', '--timeout', type=int, help='请求超时时间（秒）')
         parser.add_argument('-t', '--threads', type=int, help='并发线程数')
         parser.add_argument('-r', '--resume', action='store_true', help='从上次中断的地方继续')
-        parser.add_argument('-g', '--log', help='进度文件路径')
+        parser.add_argument('-l', '--log', help='进度文件路径')
         parser.add_argument('-A', '--aggressive', choices=['A0', 'A1', 'A2', 'A3'], help='对抗级别')
         parser.add_argument('--dry-run', action='store_true', help='测试模式，不实际发送请求')
         parser.add_argument('-v', '--verbose', action='store_true', help='详细输出')

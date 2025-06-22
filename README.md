@@ -62,7 +62,7 @@ verbose: true
 - `-r, --resume`: 断点续扫
 - `-c, --cookie`: Cookie文件
 - `-T, --timeout`: 请求超时时间 (默认: 30秒)
-- `-g, --log`: 进度文件路径
+- `-l, --log`: 进度文件路径
 - `--config`: YAML配置文件
 - `--dry-run`: 测试模式
 
