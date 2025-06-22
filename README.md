@@ -1,10 +1,6 @@
-# WebLoginBrute - 专业级Web登录暴力破解工具
+# WebLoginBrute 0.27
 
-版本：0.0.27
-
-![Banner](https://your-banner-image-url.com/banner.png) <!-- 建议添加一个横幅图片 -->
-
-**WebLoginBrute** 是一款为红队行动、渗透测试和安全研究人员设计的专业级、高并发、模块化的Web登录暴力破解工具。它从一个单脚本工具重构为一个健壮的Python包，具有高度的可扩展性和可维护性。
+为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
 
 ---
 
