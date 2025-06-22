@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import sys
+
 from .config import Config
 from .core import WebLoginBrute
 from .exceptions import ConfigurationError
+
 
 def main():
     try:
@@ -20,6 +22,7 @@ def main():
     except Exception as e:
         print(f"[!] 程序执行失败: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

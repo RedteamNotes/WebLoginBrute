@@ -6,7 +6,7 @@
 
 ## 核心设计理念
 
-项目采用“依赖注入”的设计模式。核心的 `WebLoginBrute` 类在初始化时会接收一个 `Config` 对象，并创建所有必需的服务模块（如`HttpClient`, `StateManager`等）。这种设计使得每个模块都可以被独立替换或模拟（Mock），极大地增强了可测试性和可扩展性。
+项目采用"依赖注入"的设计模式。核心的 `WebLoginBrute` 类在初始化时会接收一个 `Config` 对象，并创建所有必需的服务模块（如`HttpClient`, `StateManager`等）。这种设计使得每个模块都可以被独立替换或模拟（Mock），极大地增强了可测试性和可扩展性。
 
 ## 主要模块的公共接口
 
@@ -97,43 +97,47 @@ if __name__ == "__main__":
 
 ### 示例2：集成到现有脚本中
 
-你可以完全绕过命令行，以编程方式使用WebLoginBrute。
+你可以完全绕过命令行，以编程方式使用WebLoginBrute。这对于将爆破功能集成到更大型的自动化测试套件中非常有用。
+
+由于配置现在由 `pydantic` 管理，最清晰的方式是创建一个字典，然后使用 `Config.parse_obj()` 方法来实例化和验证配置。
 
 ```python
 # integration_script.py
-from webloginbrute.config import Config
+from webloginbrute.config import Config, ConfigurationError
 from webloginbrute.core import WebLoginBrute
 
-# 1. 创建一个自定义的Config对象
-# 注意：这需要手动创建一个模拟argparse结果的对象或修改Config类
-# (这是一个可以改进的设计点，例如让Config构造函数接受一个字典)
-
-# 假设我们修改Config使其能接受字典
-class ProgrammableConfig(Config):
-    def __init__(self, settings: dict):
-        for k, v in settings.items():
-            setattr(self, k, v)
-        self.validate() # 仍然使用内置的验证
-
-# 2. 定义你的配置
+# 1. 定义你的配置字典
+#    所有字段名与YAML文件中的键完全一致。
 my_settings = {
-    "form_url": "http://my.app/login",
-    "submit_url": "http://my.app/auth",
-    "username_file": "path/to/users.txt",
-    "password_file": "path/to/pass.txt",
+    "form_url": "https://redteamnotes.com/login",
+    "submit_url": "https://redteamnotes.com/login/authenticate",
+    "username_file": "wordlists/users.txt",  # 确保这个路径是正确的
+    "password_file": "wordlists/passwords.txt", # 确保这个路径是正确的
     "threads": 8,
-    "verbose": False,
-    # ... 其他所有必需和可选的参数
+    "timeout": 15,
+    "verbose": True,
+    "aggression_level": "A1"
+    # 你可以在这里添加任何其他有效的配置项
 }
 
-# 3. 运行爆破
+# 2. 验证配置并运行爆破
 try:
-    config = ProgrammableConfig(my_settings)
+    # 使用 parse_obj 从字典创建和验证配置
+    config = Config.parse_obj(my_settings)
+    
+    # 注入配置并运行
     brute = WebLoginBrute(config)
     brute.run()
-except Exception as e:
-    print(f"爆破任务失败: {e}")
 
+except ConfigurationError as e:
+    # 捕获自定义的配置错误
+    print(f"配置错误: {e}")
+except FileNotFoundError as e:
+    # pydantic的路径校验会触发这个错误
+    print(f"文件未找到: {e}")
+except Exception as e:
+    # 捕获其他所有可能的错误
+    print(f"爆破任务执行失败: {e}")
 ```
 
 这个API参考为你提供了与WebLoginBrute核心组件交互和扩展其功能的基础。 
