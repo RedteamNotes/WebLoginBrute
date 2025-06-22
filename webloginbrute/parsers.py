@@ -83,20 +83,30 @@ def extract_token(
                 logging.warning("JSON响应过大，跳过解析")
                 return None
             json_data = json.loads(response_text)
-            return _find_in_dict(json_data, token_field)
-        except (json.JSONDecodeError, AttributeError):
-            logging.warning(f"解析JSON以提取token '{token_field}' 时失败")
+            token = _find_in_dict(json_data, token_field)
+            if token and isinstance(token, str) and len(token) < 1024:  # 限制token长度
+                return token
+            return None
+        except (json.JSONDecodeError, AttributeError, TypeError) as e:
+            logging.warning(f"解析JSON以提取token '{token_field}' 时失败: {e}")
             return None
 
     # 处理HTML响应
     else:
         try:
+            # 限制HTML大小，防止内存攻击 (10MB)
+            if len(response_text) > 10 * 1024 * 1024:
+                logging.warning("HTML响应过大，跳过解析")
+                return None
+                
             soup = BeautifulSoup(response_text, "html.parser")
             token_input = soup.find("input", {"name": token_field})
             if isinstance(token_input, Tag) and token_input.has_attr("value"):
                 value = token_input.get("value")
                 # .get('value') 可能返回列表，我们只取第一个
-                return value[0] if isinstance(value, list) else value
+                token = value[0] if isinstance(value, list) else value
+                if token and isinstance(token, str) and len(token) < 1024:  # 限制token长度
+                    return token
         except Exception as e:
             logging.warning(f"解析HTML以提取token '{token_field}' 时失败: {e}")
             return None

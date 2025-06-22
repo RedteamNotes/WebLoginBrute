@@ -22,10 +22,12 @@ class StateManager:
         self.config = config
         self.lock = RLock()
 
-        # 获取进度文件路径
-        progress_file = getattr(config, "progress", "bruteforce_progress.json")
-        # 安全化路径
-        self.progress_file = SecurityManager.get_safe_path(progress_file)
+        # 安全地获取进度文件路径
+        log_file = getattr(config, "log", "bruteforce_progress.json")
+        try:
+            self.progress_file = SecurityManager.get_safe_path(log_file)
+        except Exception as e:
+            raise ConfigurationError(f"进度文件路径不安全: {e}")
 
         # 使用高效的数据结构来管理已尝试的组合
         # deque 用于限制内存占用，set 用于快速查找
@@ -33,17 +35,14 @@ class StateManager:
         self.attempted_combinations_deque = deque(maxlen=self.max_in_memory_attempts)
         self.attempted_combinations_set: Set[Tuple[str, str]] = set()
 
-    def add_attempted(self, combination: Tuple[str, str]):
+    def add_attempted(self, combination: Tuple[str, str]) -> None:
         """线程安全地添加一个已尝试的组合"""
         with self.lock:
             if combination not in self.attempted_combinations_set:
-                if (
-                    len(self.attempted_combinations_deque)
-                    == self.max_in_memory_attempts
-                ):
-                    # 当deque满时，从set中移除最旧的元素
-                    oldest = self.attempted_combinations_deque[0]
-                    self.attempted_combinations_set.remove(oldest)
+                # 当deque满时，从set中移除最旧的元素
+                if len(self.attempted_combinations_deque) >= self.max_in_memory_attempts:
+                    oldest = self.attempted_combinations_deque.popleft()
+                    self.attempted_combinations_set.discard(oldest)
 
                 self.attempted_combinations_deque.append(combination)
                 self.attempted_combinations_set.add(combination)
@@ -94,8 +93,11 @@ class StateManager:
                 f"加载进度文件 '{self.progress_file}' 失败: {e}。将重新开始。"
             )
             return set(), {}
+        except Exception as e:
+            logging.exception(f"加载进度文件 '{self.progress_file}' 时发生未知异常: {e}")
+            return set(), {}
 
-    def save_progress(self, stats: Dict[str, Any]):
+    def save_progress(self, stats: Dict[str, Any]) -> None:
         """将当前进度（已尝试组合和统计信息）保存到文件"""
         with self.lock:
             # 创建要保存的数据的副本，避免在迭代时被修改
@@ -112,13 +114,13 @@ class StateManager:
                 json.dump(progress_data, f, ensure_ascii=False, indent=2)
             logging.debug(f"进度已保存到 '{self.progress_file}'")
         except Exception as e:
-            logging.error(f"保存进度到 '{self.progress_file}' 失败: {e}")
+            logging.exception(f"保存进度到 '{self.progress_file}' 失败: {e}")
 
-    def cleanup_progress_file(self):
+    def cleanup_progress_file(self) -> None:
         """在任务成功完成后清理进度文件"""
         if os.path.exists(self.progress_file):
             try:
                 os.remove(self.progress_file)
                 logging.info(f"任务成功，进度文件 '{self.progress_file}' 已被清理。")
-            except OSError as e:
-                logging.error(f"清理进度文件 '{self.progress_file}' 失败: {e}")
+            except Exception as e:
+                logging.exception(f"清理进度文件 '{self.progress_file}' 失败: {e}")

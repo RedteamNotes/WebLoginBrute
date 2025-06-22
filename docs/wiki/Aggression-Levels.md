@@ -1,133 +1,6 @@
-# 对抗级别详解
+# 对抗级别
 
-WebLoginBrute提供了4个预设的对抗级别，用于适应不同的安全环境和防护强度。
-
-## A0 - 静默模式
-
-**适用场景**: 测试环境、无防护目标、快速验证
-
-**特点**:
-- 最高速度，几乎没有延迟
-- 适合在没有WAF/IPS的环境中快速测试
-- 风险：容易被检测和封禁
-
-**配置示例**:
-```yaml
-level: "A0"
-```
-
-**命令行使用**:
-```bash
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users users.txt \
-  --passwords passwords.txt \
-  --level A0
-```
-
-## A1 - 标准模式（默认）
-
-**适用场景**: 一般网站、基础防护
-
-**特点**:
-- 适中的延迟和随机性
-- 能规避基础的频率限制
-- 平衡了速度和隐蔽性
-
-**配置示例**:
-```yaml
-level: "A1"
-```
-
-**命令行使用**:
-```bash
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users users.txt \
-  --passwords passwords.txt \
-  --level A1
-```
-
-## A2 - 激进模式
-
-**适用场景**: 中等安全防护、有WAF的目标
-
-**特点**:
-- 更长的延迟和更大的随机性
-- 模拟耐心的攻击者行为
-- 能规避大部分WAF检测
-
-**配置示例**:
-```yaml
-level: "A2"
-```
-
-**命令行使用**:
-```bash
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users users.txt \
-  --passwords passwords.txt \
-  --level A2
-```
-
-## A3 - 极限模式
-
-**适用场景**: 高安全目标、严格访问控制
-
-**特点**:
-- 非常长的延迟
-- 最大程度的隐蔽性
-- 用于对抗严格的行为分析
-
-**配置示例**:
-```yaml
-level: "A3"
-```
-
-**命令行使用**:
-```bash
-python -m webloginbrute \
-  --form https://example.com/login \
-  --submit https://example.com/login \
-  --users users.txt \
-  --passwords passwords.txt \
-  --level A3
-```
-
-## 级别对比
-
-| 级别 | 延迟范围 | 随机性 | 速度 | 隐蔽性 | 适用场景 |
-|------|----------|--------|------|--------|----------|
-| A0 | 0-0.1s | 低 | 最快 | 低 | 测试环境 |
-| A1 | 0.5-1s | 中 | 快 | 中 | 一般网站 |
-| A2 | 1-3s | 高 | 中 | 高 | 有WAF |
-| A3 | 2-5s | 最高 | 慢 | 最高 | 高安全 |
-
-## 动态调整
-
-你可以根据目标响应动态调整对抗级别：
-
-```bash
-# 开始时使用标准级别
-level: "A1"
-
-# 如果遇到频率限制，切换到更高级别
-level: "A2"
-
-# 对于高安全目标，直接使用极限级别
-level: "A3"
-```
-
-## 最佳实践
-
-1. **从标准级别开始**: 大多数情况下，A1级别已经足够
-2. **根据响应调整**: 如果遇到频率限制，升级到A2或A3
-3. **考虑目标环境**: 企业级目标通常需要A2或A3级别
-4. **监控日志**: 观察是否触发安全防护，及时调整策略
+WebLoginBrute提供四级对抗策略，用户可根据目标安全级别选择合适的攻击强度。
 
 ## 🎯 对抗级别概述
 
@@ -155,7 +28,7 @@ level: "A3"
 ### 配置参数
 
 ```yaml
-level: "A0"
+aggressive: "A0"
 
 # 自动设置的参数
 min_delay: 0.0
@@ -172,13 +45,13 @@ session_lifetime: 0
 
 ```yaml
 # 快速爆破配置
-target_url: "https://test.example.com/login"
+url: "https://test.example.com/login"
 success_redirect: "https://test.example.com/dashboard"
 failure_redirect: "https://test.example.com/login"
-username_list: "users.txt"
-password_list: "passwords.txt"
+users: "users.txt"
+passwords: "passwords.txt"
 threads: 20
-level: "A0"
+aggressive: "A0"
 ```
 
 ### 性能特点
@@ -204,7 +77,7 @@ level: "A0"
 ### 配置参数
 
 ```yaml
-level: "A1"
+aggressive: "A1"
 
 # 自动设置的参数
 min_delay: 0.5
@@ -221,13 +94,13 @@ session_lifetime: 60
 
 ```yaml
 # 低对抗配置
-target_url: "https://example.com/login"
+url: "https://example.com/login"
 success_redirect: "https://example.com/dashboard"
 failure_redirect: "https://example.com/login"
-username_list: "users.txt"
-password_list: "passwords.txt"
+users: "users.txt"
+passwords: "passwords.txt"
 threads: 10
-level: "A1"
+aggressive: "A1"
 ```
 
 ### 性能特点
@@ -253,7 +126,7 @@ level: "A1"
 ### 配置参数
 
 ```yaml
-level: "A2"
+aggressive: "A2"
 
 # 自动设置的参数
 min_delay: 1.0
@@ -270,13 +143,13 @@ session_lifetime: 300
 
 ```yaml
 # 中对抗配置
-target_url: "https://secure.example.com/login"
+url: "https://secure.example.com/login"
 success_redirect: "https://secure.example.com/dashboard"
 failure_redirect: "https://secure.example.com/login"
-username_list: "users.txt"
-password_list: "passwords.txt"
+users: "users.txt"
+passwords: "passwords.txt"
 threads: 5
-level: "A2"
+aggressive: "A2"
 proxy: "http://127.0.0.1:8080"
 ```
 
@@ -303,7 +176,7 @@ proxy: "http://127.0.0.1:8080"
 ### 配置参数
 
 ```yaml
-level: "A3"
+aggressive: "A3"
 
 # 自动设置的参数
 min_delay: 2.0
@@ -320,13 +193,13 @@ session_lifetime: 600
 
 ```yaml
 # 高对抗配置
-target_url: "https://bank.example.com/login"
+url: "https://bank.example.com/login"
 success_redirect: "https://bank.example.com/dashboard"
 failure_redirect: "https://bank.example.com/login"
-username_list: "users.txt"
-password_list: "passwords.txt"
+users: "users.txt"
+passwords: "passwords.txt"
 threads: 3
-level: "A3"
+aggressive: "A3"
 proxy: "http://proxy.example.com:8080"
 min_delay: 3.0
 max_delay: 15.0
@@ -344,19 +217,19 @@ max_delay: 15.0
 
 ```yaml
 # 1. 先用A0快速测试
-level: "A0"
+aggressive: "A0"
 threads: 20
 
 # 2. 如果被检测，升级到A1
-level: "A1"
+aggressive: "A1"
 threads: 10
 
 # 3. 如果仍有问题，升级到A2
-level: "A2"
+aggressive: "A2"
 threads: 5
 
 # 4. 最后使用A3
-level: "A3"
+aggressive: "A3"
 threads: 3
 ```
 
@@ -385,7 +258,7 @@ threads: 3
 
 ```yaml
 # 使用A2级别但自定义延迟
-level: "A2"
+aggressive: "A2"
 min_delay: 0.5      # 覆盖默认的1.0
 max_delay: 3.0      # 覆盖默认的5.0
 jitter_factor: 0.5  # 覆盖默认的0.3
@@ -395,7 +268,7 @@ jitter_factor: 0.5  # 覆盖默认的0.3
 
 ```yaml
 # 使用A1级别但启用会话池
-level: "A1"
+aggressive: "A1"
 enable_session_pool: true  # 覆盖默认的false
 session_lifetime: 300      # 覆盖默认的60
 ```

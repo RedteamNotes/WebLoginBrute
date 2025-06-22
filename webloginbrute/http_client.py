@@ -7,63 +7,50 @@ import random
 import socket
 import time
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Optional, Dict, Any
+from urllib.parse import urlparse
 
 import requests
 from requests import Session
 
-from .constants import BROWSER_HEADERS, USER_AGENTS
+from .constants import USER_AGENTS, BROWSER_HEADERS
 from .exceptions import NetworkError
-
 
 class HttpClient:
     """
     一个健壮的HTTP客户端，用于处理所有网络请求。
     它包含会话管理、DNS缓存、请求重试和安全头验证等功能。
     """
-
     def __init__(self, config: object):
         self.config = config
-
+        
         # DNS缓存
         self._dns_cache: Dict[str, Optional[str]] = {}
         self._dns_cache_lock = Lock()
-
+        
         # 会话池
         self._session_pool: Dict[str, Dict[str, Any]] = {}
         self._session_pool_lock = Lock()
-
+        
         # 重试配置
-        self.max_retries = getattr(config, "max_retries", 3)
-        self.base_delay = getattr(config, "base_delay", 1.0)
+        self.max_retries = getattr(config, 'max_retries', 3)
+        self.base_delay = getattr(config, 'base_delay', 1.0)
+        
+        self.session_lifetime = getattr(self.config, 'session_lifetime', 300)
+        self.max_session_pool_size = getattr(self.config, 'max_session_pool_size', 100)
 
-        self.session_lifetime = getattr(self.config, "session_lifetime", 300)
-        self.max_session_pool_size = getattr(self.config, "max_session_pool_size", 100)
-
-    def get(
-        self, url: str, headers: Optional[Dict] = None, **kwargs
-    ) -> requests.Response:
+    def get(self, url: str, headers: Optional[Dict] = None, **kwargs) -> requests.Response:
         """执行带重试的GET请求"""
-        return self._make_request_with_retry("GET", url, headers=headers, **kwargs)
+        return self._make_request_with_retry('GET', url, headers=headers, **kwargs)
 
-    def post(
-        self,
-        url: str,
-        data: Optional[Dict] = None,
-        headers: Optional[Dict] = None,
-        **kwargs,
-    ) -> requests.Response:
+    def post(self, url: str, data: Optional[Dict] = None, headers: Optional[Dict] = None, **kwargs) -> requests.Response:
         """执行带重试的POST请求"""
-        return self._make_request_with_retry(
-            "POST", url, data=data, headers=headers, **kwargs
-        )
+        return self._make_request_with_retry('POST', url, data=data, headers=headers, **kwargs)
 
-    def _make_request_with_retry(
-        self, method: str, url: str, **kwargs
-    ) -> requests.Response:
+    def _make_request_with_retry(self, method: str, url: str, **kwargs) -> requests.Response:
         """使用指数退避策略执行请求，并管理会话"""
         last_exception = None
-
+        
         # 解析hostname
         try:
             parsed_url = urlparse(url)
@@ -80,26 +67,26 @@ class HttpClient:
 
         # 从会话池获取或创建一个会话
         session = self._get_session(session_key)
-
+        
         # 准备请求头
-        headers = kwargs.get("headers", {}).copy()
-        headers.setdefault("User-Agent", random.choice(USER_AGENTS))
+        headers = kwargs.get('headers', {}).copy()
+        headers.setdefault('User-Agent', random.choice(USER_AGENTS))
         for key, value in BROWSER_HEADERS.items():
             headers.setdefault(key, value)
-        kwargs["headers"] = headers
-
+        kwargs['headers'] = headers
+        
         # 设置超时
-        kwargs.setdefault("timeout", getattr(self.config, "timeout", 30))
+        kwargs.setdefault('timeout', getattr(self.config, 'timeout', 30))
 
         for attempt in range(self.max_retries + 1):
             try:
                 response = session.request(method, url, **kwargs)
                 response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
-
+                
                 # 验证响应头的安全性
                 if not self._validate_response_headers(response):
                     raise NetworkError("响应头安全检查失败")
-
+                
                 return response
 
             except requests.exceptions.Timeout as e:
@@ -117,26 +104,22 @@ class HttpClient:
                 logging.error(f"未知网络错误: {e}")
 
             if attempt < self.max_retries:
-                delay = self.base_delay * (2**attempt) + random.uniform(0, 0.5)
+                delay = self.base_delay * (2 ** attempt) + random.uniform(0, 0.5)
                 logging.info(f"将在 {delay:.1f} 秒后重试...")
                 time.sleep(delay)
-
-        raise (
-            last_exception
-            if last_exception
-            else NetworkError("请求失败，已达最大重试次数")
-        )
+        
+        raise last_exception if last_exception else NetworkError("请求失败，已达最大重试次数")
 
     def _get_session(self, session_key: str) -> Session:
         """从会话池中获取或创建会话"""
         with self._session_pool_lock:
             if session_key in self._session_pool:
                 session_info = self._session_pool[session_key]
-                if time.time() - session_info["created_time"] < self.session_lifetime:
-                    return session_info["session"]
+                if time.time() - session_info['created_time'] < self.session_lifetime:
+                    return session_info['session']
                 else:
                     try:
-                        session_info["session"].close()
+                        session_info['session'].close()
                     except Exception:
                         pass
                     del self._session_pool[session_key]
@@ -144,9 +127,9 @@ class HttpClient:
             # 创建新会话
             session = requests.Session()
             session.max_redirects = 5
-
+            
             # 加载cookies
-            cookie_file = getattr(self.config, "cookies", None)
+            cookie_file = getattr(self.config, 'cookie', None)
             if cookie_file:
                 try:
                     jar = cookielib.MozillaCookieJar(cookie_file)
@@ -154,31 +137,26 @@ class HttpClient:
                     session.cookies.update(jar)
                 except Exception as e:
                     logging.warning(f"加载Cookie文件 '{cookie_file}' 失败: {e}")
-
+            
             self._session_pool[session_key] = {
-                "session": session,
-                "created_time": time.time(),
+                'session': session,
+                'created_time': time.time()
             }
-
+            
             # 限制会话池大小
             if len(self._session_pool) > self.max_session_pool_size:
-                oldest_key = min(
-                    self._session_pool.keys(),
-                    key=lambda k: self._session_pool[k]["created_time"],
-                )
+                oldest_key = min(self._session_pool.keys(), key=lambda k: self._session_pool[k]['created_time'])
                 try:
-                    self._session_pool[oldest_key]["session"].close()
+                    self._session_pool[oldest_key]['session'].close()
                 except Exception:
                     pass
                 del self._session_pool[oldest_key]
-
+            
             return session
 
     def _validate_response_headers(self, response: requests.Response) -> bool:
         """验证响应头的安全性"""
-        total_header_size = sum(
-            len(name) + len(value) for name, value in response.headers.items()
-        )
+        total_header_size = sum(len(name) + len(value) for name, value in response.headers.items())
         if total_header_size > 8192:  # 8KB
             logging.warning(f"响应头过大 ({total_header_size} bytes)，可能存在风险")
             return False
@@ -195,10 +173,10 @@ class HttpClient:
                         targets.add(parsed.hostname)
                 except Exception:
                     continue
-
+        
         if not targets:
             return
-
+            
         logging.info(f"预解析目标域名: {', '.join(targets)}")
         for host in targets:
             self._resolve_host(host)
@@ -208,7 +186,7 @@ class HttpClient:
         with self._dns_cache_lock:
             if host in self._dns_cache:
                 return self._dns_cache[host]
-
+        
         try:
             socket.setdefaulttimeout(timeout)
             ip_str = socket.gethostbyname(host)
@@ -227,11 +205,8 @@ class HttpClient:
         with self._session_pool_lock:
             for session_info in self._session_pool.values():
                 try:
-                    session_info["session"].close()
+                    session_info['session'].close()
                 except Exception:
                     pass
             self._session_pool.clear()
             logging.debug("所有HTTP会话已关闭")
-
-
-from urllib.parse import urlparse

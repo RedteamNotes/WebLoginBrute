@@ -40,13 +40,13 @@ echo "123456" >> passwords.txt
 3. **配置目标**
 ```yaml
 # config.yaml
-target_url: "https://test.example.com/login"
+url: "https://test.example.com/login"
 success_redirect: "https://test.example.com/dashboard"
 failure_redirect: "https://test.example.com/login"
-username_list: "users.txt"
-password_list: "passwords.txt"
+users: "users.txt"
+passwords: "passwords.txt"
 threads: 5
-level: "A1"
+aggressive: "A1"
 ```
 
 4. **运行测试**
@@ -91,7 +91,7 @@ curl -s "https://target.com/login" | grep -i "csrf\|token"
 
 3. **确定配置参数**
 ```yaml
-target_url: "https://target.com/login"           # 登录页面
+url: "https://target.com/login"           # 登录页面
 success_redirect: "https://target.com/dashboard" # 成功页面
 failure_redirect: "https://target.com/login"     # 失败页面
 ```
@@ -169,7 +169,7 @@ split -l 1000 passwords.txt passwords_part_
 
 # 并行处理多个字典
 for file in passwords_part_*; do
-    sed -i "s|password_list:.*|password_list: \"$file\"|" config.yaml
+    sed -i "s|passwords:.*|passwords: \"$file\"|" config.yaml
     python3 webloginbrute.py --config config.yaml &
 done
 ```
@@ -182,7 +182,7 @@ done
 #### 配置
 ```yaml
 # 启用会话池
-level: "A2"
+aggressive: "A2"
 enable_session_pool: true
 session_lifetime: 300
 
@@ -209,16 +209,16 @@ python3 webloginbrute.py --config config.yaml --resume-session
 #### 配置策略
 ```yaml
 # 第一阶段：快速扫描
-target_url: "https://company.com/login"
+url: "https://company.com/login"
 success_redirect: "https://company.com/dashboard"
 failure_redirect: "https://company.com/login"
-username_list: "common_users.txt"
-password_list: "top_1000_passwords.txt"
+users: "common_users.txt"
+passwords: "top_1000_passwords.txt"
 threads: 10
-level: "A0"  # 快速模式
+aggressive: "A0"  # 快速模式
 
 # 第二阶段：深度测试
-level: "A2"  # 中对抗模式
+aggressive: "A2"  # 中对抗模式
 threads: 5
 proxy: "http://proxy.company.com:8080"
 enable_session_pool: true
@@ -244,13 +244,13 @@ python3 webloginbrute.py --config config_deep.yaml
 #### 配置策略
 ```yaml
 # 高对抗配置
-target_url: "https://shop.example.com/login"
+url: "https://shop.example.com/login"
 success_redirect: "https://shop.example.com/account"
 failure_redirect: "https://shop.example.com/login"
-username_list: "customer_emails.txt"
-password_list: "common_passwords.txt"
+users: "customer_emails.txt"
+passwords: "common_passwords.txt"
 threads: 3
-level: "A3"  # 高对抗模式
+aggressive: "A3"  # 高对抗模式
 proxy: "http://rotating-proxy.com:8080"
 min_delay: 3.0
 max_delay: 15.0
@@ -278,13 +278,13 @@ python3 webloginbrute.py --config config_full.yaml
 #### 配置策略
 ```yaml
 # 全速配置
-target_url: "http://internal.test.com/login"
+url: "http://internal.test.com/login"
 success_redirect: "http://internal.test.com/dashboard"
 failure_redirect: "http://internal.test.com/login"
-username_list: "internal_users.txt"
-password_list: "internal_passwords.txt"
+users: "internal_users.txt"
+passwords: "internal_passwords.txt"
 threads: 20
-level: "A0"  # 全速模式
+aggressive: "A0"  # 全速模式
 enable_smart_delay: false
 enable_session_pool: false
 ```
@@ -343,7 +343,7 @@ curl -s "https://target.com/login" | grep -i "captcha"
 ```yaml
 # 高性能配置
 threads: 20                    # 高并发
-level: "A0"         # 无延迟
+aggressive: "A0"         # 无延迟
 enable_smart_delay: false      # 关闭智能延迟
 enable_session_pool: false     # 关闭会话池
 ```
@@ -352,7 +352,7 @@ enable_session_pool: false     # 关闭会话池
 ```yaml
 # 高隐蔽配置
 threads: 3                     # 低并发
-level: "A3"         # 高对抗
+aggressive: "A3"         # 高对抗
 proxy: "http://proxy.com:8080" # 使用代理
 min_delay: 5.0                 # 长延迟
 max_delay: 20.0                # 更长延迟
@@ -376,7 +376,7 @@ grep "captcha" attack.log
 # 根据检测情况调整配置
 if grep -q "rate limit" attack.log; then
     # 降低级别
-    sed -i 's/level: "A1"/level: "A2"/' config.yaml
+    sed -i 's/aggressive: "A1"/aggressive: "A2"/' config.yaml
     sed -i 's/threads: 10/threads: 5/' config.yaml
 fi
 ```

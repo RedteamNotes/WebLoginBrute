@@ -105,13 +105,13 @@ python3 -c "import yaml; yaml.safe_load(open('config.yaml'))"
 
 # 常见错误修复
 # 1. 缺少引号
-target_url: https://example.com/login  # 错误
-target_url: "https://example.com/login"  # 正确
+url: https://example.com/login  # 错误
+url: "https://example.com/login"  # 正确
 
 # 2. 缩进错误
-level: "A1"
+aggressive_level: "A1"
   min_delay: 1.0  # 错误缩进
-level: "A1"
+aggressive_level: "A1"
 min_delay: 1.0    # 正确缩进
 
 # 3. 类型错误
@@ -132,7 +132,7 @@ FileNotFoundError: [Errno 2] No such file or directory: 'users.txt'
 ls -la users.txt passwords.txt
 
 # 使用绝对路径
-username_list: "/full/path/to/users.txt"
+users: "/full/path/to/users.txt"
 
 # 或确保文件在当前目录
 pwd
@@ -149,12 +149,12 @@ requests.exceptions.InvalidURL: Invalid URL
 #### 解决方案
 ```yaml
 # 错误格式
-target_url: example.com/login
-target_url: http://example.com/login  # 缺少协议
+url: example.com/login
+url: http://example.com/login  # 缺少协议
 
 # 正确格式
-target_url: "https://example.com/login"
-target_url: "http://example.com/login"
+url: "https://example.com/login"
+url: "http://example.com/login"
 ```
 
 ## 🚀 运行问题
@@ -254,7 +254,7 @@ failure_string: "Invalid credentials"
 #### 解决方案
 ```yaml
 # 1. 降低对抗级别
-level: "A0"  # 全速模式
+aggressive: "A0"  # 全速模式
 
 # 2. 增加线程数
 threads: 20
@@ -367,7 +367,7 @@ requests.exceptions.ConnectionError: [Errno -2] Name or service not known
 nslookup target.com
 
 # 2. 使用IP地址
-target_url: "https://192.168.1.100/login"
+url: "https://192.168.1.100/login"
 
 # 3. 修改hosts文件
 echo "192.168.1.100 target.com" >> /etc/hosts
@@ -454,19 +454,19 @@ def validate_config(config_file):
             config = yaml.safe_load(f)
         
         # 验证必需参数
-        required = ['target_url', 'username_list', 'password_list']
+        required = ['url', 'users', 'passwords']
         for param in required:
             if param not in config:
                 print(f"❌ 缺少必需参数: {param}")
                 return False
         
         # 测试URL连接
-        response = requests.get(config['target_url'], timeout=10)
+        response = requests.get(config['url'], timeout=10)
         print(f"✅ URL连接正常: {response.status_code}")
         
         # 检查文件存在
         import os
-        for file_param in ['username_list', 'password_list']:
+        for file_param in ['users', 'passwords']:
             if os.path.exists(config[file_param]):
                 print(f"✅ 文件存在: {config[file_param]}")
             else:
@@ -495,19 +495,19 @@ if __name__ == "__main__":
 #!/bin/bash
 # network_test.sh
 
-TARGET_URL=$1
+URL=$1
 PROXY=$2
 
 echo "测试目标连接..."
-curl -s -o /dev/null -w "HTTP状态码: %{http_code}\n响应时间: %{time_total}s\n" "$TARGET_URL"
+curl -s -o /dev/null -w "HTTP状态码: %{http_code}\n响应时间: %{time_total}s\n" "$URL"
 
 if [ ! -z "$PROXY" ]; then
     echo "测试代理连接..."
-    curl -s -o /dev/null -w "代理HTTP状态码: %{http_code}\n代理响应时间: %{time_total}s\n" -x "$PROXY" "$TARGET_URL"
+    curl -s -o /dev/null -w "代理HTTP状态码: %{http_code}\n代理响应时间: %{time_total}s\n" -x "$PROXY" "$URL"
 fi
 
 echo "测试DNS解析..."
-nslookup $(echo $TARGET_URL | sed 's|https://||' | sed 's|http://||' | cut -d'/' -f1)
+nslookup $(echo $URL | sed 's|https://||' | sed 's|http://||' | cut -d'/' -f1)
 ```
 
 ### 3. 性能监控脚本

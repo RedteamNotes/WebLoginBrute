@@ -118,7 +118,9 @@ class StatsManager:
             duration = self.stats["end_time"] - self.stats["start_time"]
 
             # 避免除以零
-            avg_rate = self.stats["total_attempts"] / duration if duration > 0 else 0
+            avg_rate = (
+                self.stats["total_attempts"] / duration if duration > 0 else 0
+            )
 
             print("\n" + "=" * 50)
             print("                暴力破解任务完成")
