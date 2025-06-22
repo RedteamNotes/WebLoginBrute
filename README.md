@@ -17,7 +17,7 @@
 ### 安装
 
 ```bash
-git clone https://github.com/your-repo/WebLoginBrute.git
+git clone https://github.com/RedteamNotes/WebLoginBrute.git
 cd WebLoginBrute
 pip install -r requirements.txt
 ```
@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 ```bash
 # 使用命令行参数
-python -m webloginbrute -u https://target/login -a https://target/login -U users.txt -P passwords.txt -t 10 -v
+python -m webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/login/authenticate -U users.txt -P passwords.txt -t 10 -v
 
 # 使用配置文件
 python -m webloginbrute --config config.yaml -t 10 -A A2
@@ -36,8 +36,8 @@ python -m webloginbrute --config config.yaml -t 10 -A A2
 
 ```yaml
 # config.yaml
-url: https://target/login
-action: https://target/login
+url: https://redteamnotes.com/login
+action: https://redteamnotes.com/login/authenticate
 users: users.txt
 passwords: passwords.txt
 csrf: token

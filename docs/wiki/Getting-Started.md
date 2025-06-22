@@ -87,4 +87,61 @@ python -m webloginbrute --config config.yaml
 - 仅对授权的目标进行测试
 - 遵守当地法律法规
 - 不要用于非法用途
-- 测试完成后及时清理进度文件 
+- 测试完成后及时清理进度文件
+
+## 基本使用
+
+### 1. 克隆项目
+```bash
+git clone https://github.com/RedteamNotes/WebLoginBrute.git
+cd WebLoginBrute
+```
+
+### 2. 安装依赖
+```bash
+pip install -r requirements.txt
+```
+
+### 3. 准备字典
+创建或下载用户名和密码字典文件。例如：
+`users.txt`:
+```
+admin
+user
+guest
+```
+`passwords.txt`:
+```
+password
+123456
+admin
+```
+
+### 4. 运行爆破
+**基本命令:**
+```bash
+python -m webloginbrute \
+    --url "https://redteamnotes.com/login" \
+    --action "https://redteamnotes.com/login/authenticate" \
+    --users "users.txt" \
+    --passwords "passwords.txt" \
+    --fail-string "Invalid credentials"
+```
+
+**使用配置文件:**
+创建一个 `config.yaml` 文件:
+```yaml
+url: "https://redteamnotes.com/login"
+action: "https://redteamnotes.com/login/authenticate"
+users: "users.txt"
+passwords: "passwords.txt"
+fail_string: "Invalid credentials"
+threads: 20
+verbose: true
+```
+然后运行:
+```bash
+python -m webloginbrute --config config.yaml
+```
+
+**找到正确密码后，程序将显示成功信息并退出。** 

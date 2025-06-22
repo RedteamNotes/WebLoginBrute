@@ -10,8 +10,8 @@
 **示例 `config.yaml`:**
 ```yaml
 # --- 核心配置 (必需) ---
-url: "http://example.com/login"
-action: "http://example.com/perform_login"
+url: "https://redteamnotes.com/login"
+action: "https://redteamnotes.com/login/authenticate"
 users: "wordlists/users.txt"
 passwords: "wordlists/passwords.txt"
 
@@ -43,8 +43,8 @@ python -m webloginbrute --config config.yaml
 **示例:**
 ```bash
 python -m webloginbrute \
-    --url "http://example.com/login" \
-    --action "http://example.com/perform_login" \
+    --url "https://redteamnotes.com/login" \
+    --action "https://redteamnotes.com/login/authenticate" \
     --users "wordlists/users.txt" \
     --passwords "wordlists/passwords.txt" \
     --fail-string "Invalid username or password" \
@@ -417,4 +417,3 @@ python -m webloginbrute \
 | `aggressive` | `--aggressive` | `string` | 对抗级别 (`A0`, `A1`, `A2`, `A3`)。默认为 `A1`。 |
 | `verbose` | `--verbose` | `boolean` | 详细模式。设置为 `true` 或在命令行使用此标志，将在控制台输出DEBUG日志。 |
 | `ip_whitelist` | *N/A* | `array` | (仅YAML) IP白名单，支持CIDR。 |
-| `
