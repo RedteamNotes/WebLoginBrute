@@ -1,11 +1,9 @@
-# WebLoginBrute 0.27.9
+# WebLoginBrute 0.27
 
 [![LICENSE](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
 [![Release](https://img.shields.io/github/v/release/RedteamNotes/WebLoginBrute.svg)](https://github.com/RedteamNotes/WebLoginBrute/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/RedteamNotes/WebLoginBrute/badge)](https://securityscorecards.dev/viewer/?uri=github.com/RedteamNotes/WebLoginBrute)
-
-`WebLoginBrute` 是一款功能强大、高度可配置的 Web 登录页面暴力破解工具，专为渗透测试人员和安全研究员设计。
 
 为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
 
