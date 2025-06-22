@@ -51,7 +51,7 @@ aggressive: "A1"
 
 4. **运行测试**
 ```bash
-python3 webloginbrute.py --config config.yaml
+webloginbrute --config config.yaml --verbose
 ```
 
 #### 预期结果
@@ -127,7 +127,7 @@ EOF
 # 使用脚本轮换代理
 while read proxy; do
     sed -i "s|proxy:.*|proxy: \"$proxy\"|" config.yaml
-    python3 webloginbrute.py --config config.yaml
+    webloginbrute --config config.yaml --verbose
 done < proxy_list.txt
 ```
 
@@ -170,7 +170,7 @@ split -l 1000 passwords.txt passwords_part_
 # 并行处理多个字典
 for file in passwords_part_*; do
     sed -i "s|passwords:.*|passwords: \"$file\"|" config.yaml
-    python3 webloginbrute.py --config config.yaml &
+    webloginbrute --config config.yaml --verbose &
 done
 ```
 
@@ -193,10 +193,10 @@ session_lifetime: 600  # 10分钟会话
 #### 会话恢复
 ```bash
 # 保存成功会话
-python3 webloginbrute.py --config config.yaml --save-session
+webloginbrute --config config.yaml --save-session
 
 # 恢复会话继续测试
-python3 webloginbrute.py --config config.yaml --resume-session
+webloginbrute --config config.yaml --resume-session
 ```
 
 ## 🎯 实战案例
@@ -227,13 +227,13 @@ enable_session_pool: true
 #### 执行步骤
 ```bash
 # 1. 快速扫描
-python3 webloginbrute.py --config config_quick.yaml
+webloginbrute --config config_quick.yaml --verbose
 
 # 2. 分析结果，调整策略
 # 如果发现频率限制，降低级别
 
 # 3. 深度测试
-python3 webloginbrute.py --config config_deep.yaml
+webloginbrute --config config_deep.yaml --verbose
 ```
 
 ### 案例2：电商平台测试
@@ -261,13 +261,13 @@ enable_captcha_detection: true
 ```bash
 # 1. 小规模测试
 head -100 customer_emails.txt > test_users.txt
-python3 webloginbrute.py --config config_test.yaml
+webloginbrute --config config_test.yaml --verbose
 
 # 2. 监控检测情况
 # 如果验证码频繁出现，增加延迟
 
 # 3. 大规模测试
-python3 webloginbrute.py --config config_full.yaml
+webloginbrute --config config_full.yaml --verbose
 ```
 
 ### 案例3：内部系统测试
@@ -292,7 +292,7 @@ enable_session_pool: false
 #### 执行步骤
 ```bash
 # 1. 快速爆破
-python3 webloginbrute.py --config config_fast.yaml
+webloginbrute --config config_fast.yaml --verbose
 
 # 2. 分析结果
 # 检查成功凭据和失败模式
@@ -363,7 +363,7 @@ max_delay: 20.0                # 更长延迟
 #### 实时监控
 ```bash
 # 监控输出
-python3 webloginbrute.py --config config.yaml 2>&1 | tee attack.log
+webloginbrute --config config.yaml 2>&1 | tee attack.log
 
 # 分析日志
 grep "SUCCESS" attack.log

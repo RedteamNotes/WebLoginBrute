@@ -8,30 +8,24 @@ from typing import Any, Dict, Optional
 from bs4 import BeautifulSoup, Tag
 
 
-def contains_captcha(html: str) -> bool:
+def contains_captcha(html: str, keywords=None) -> bool:
     """
     检测页面是否包含验证码。
-    使用安全的html.parser，并优先进行简单的文本检查以提高性能。
+    支持自定义关键字，默认包含 captcha/验证码。
     """
     if not html or not isinstance(html, str):
         return False
-
-    # 优先使用快速的字符串检查
+    if keywords is None:
+        keywords = ["captcha", "验证码"]
     html_lower = html.lower()
-    if "captcha" in html_lower or "验证码" in html_lower:
+    if any(k in html_lower for k in keywords):
         return True
-
-    # 如果需要更精确的检查，再解析HTML
     try:
         soup = BeautifulSoup(html, "html.parser")
-        # 查找常见的验证码输入框或图像
-        if soup.find("input", {"type": "captcha"}) or soup.find(
-            "img", {"id": "captcha_image"}
-        ):
+        if soup.find("input", {"type": "captcha"}) or soup.find("img", {"id": "captcha_image"}):
             return True
     except Exception as e:
         logging.warning(f"解析HTML以检测验证码时失败: {e}")
-
     return False
 
 
@@ -66,52 +60,75 @@ def _find_in_dict(data: Dict[str, Any], key: str) -> Optional[Any]:
 
 
 def extract_token(
-    response_text: str, content_type: str, token_field: str
+    response_text: str, content_type: str, token_field: str, strategy: str = "auto"
 ) -> Optional[str]:
     """
     从响应中提取CSRF token。
-    根据Content-Type智能选择JSON或HTML解析方式。
+    支持多种提取策略：auto, json, html, regex
     """
     if not token_field or not response_text:
         return None
-
-    # 处理JSON响应
-    if "application/json" in content_type:
-        try:
-            # 限制JSON大小，防止内存攻击 (1MB)
-            if len(response_text) > 1024 * 1024:
-                logging.warning("JSON响应过大，跳过解析")
-                return None
-            json_data = json.loads(response_text)
-            token = _find_in_dict(json_data, token_field)
-            if token and isinstance(token, str) and len(token) < 1024:  # 限制token长度
-                return token
-            return None
-        except (json.JSONDecodeError, AttributeError, TypeError) as e:
-            logging.warning(f"解析JSON以提取token '{token_field}' 时失败: {e}")
-            return None
-
-    # 处理HTML响应
+    if strategy == "json":
+        return _extract_token_from_json(response_text, token_field)
+    elif strategy == "html":
+        return _extract_token_from_html(response_text, token_field)
+    elif strategy == "regex":
+        return _extract_token_from_regex(response_text, token_field)
     else:
-        try:
-            # 限制HTML大小，防止内存攻击 (10MB)
-            if len(response_text) > 10 * 1024 * 1024:
-                logging.warning("HTML响应过大，跳过解析")
-                return None
-                
-            soup = BeautifulSoup(response_text, "html.parser")
-            token_input = soup.find("input", {"name": token_field})
-            if isinstance(token_input, Tag) and token_input.has_attr("value"):
-                value = token_input.get("value")
-                # .get('value') 可能返回列表，我们只取第一个
-                token = value[0] if isinstance(value, list) else value
-                if token and isinstance(token, str) and len(token) < 1024:  # 限制token长度
-                    return token
-        except Exception as e:
-            logging.warning(f"解析HTML以提取token '{token_field}' 时失败: {e}")
-            return None
+        return _extract_token_auto(response_text, content_type, token_field)
 
+
+def _extract_token_from_json(response_text: str, token_field: str) -> Optional[str]:
+    try:
+        if len(response_text) > 1024 * 1024:
+            logging.warning("JSON响应过大，跳过解析")
+            return None
+        json_data = json.loads(response_text)
+        token = _find_in_dict(json_data, token_field)
+        if token and isinstance(token, str) and len(token) < 1024:
+            return token
+        return None
+    except (json.JSONDecodeError, AttributeError, TypeError) as e:
+        logging.warning(f"解析JSON以提取token '{token_field}' 时失败: {e}")
+        return None
+
+
+def _extract_token_from_html(response_text: str, token_field: str) -> Optional[str]:
+    try:
+        if len(response_text) > 10 * 1024 * 1024:
+            logging.warning("HTML响应过大，跳过解析")
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        token_input = soup.find("input", {"name": token_field})
+        if isinstance(token_input, Tag) and token_input.has_attr("value"):
+            value = token_input.get("value")
+            token = value[0] if isinstance(value, list) else value
+            if token and isinstance(token, str) and len(token) < 1024:
+                return token
+    except Exception as e:
+        logging.warning(f"解析HTML以提取token '{token_field}' 时失败: {e}")
     return None
+
+
+def _extract_token_from_regex(response_text: str, token_field: str) -> Optional[str]:
+    import re
+    try:
+        pattern = rf'name=["\']{re.escape(token_field)}["\'][^>]*value=["\']([^"\']+)["\']'
+        match = re.search(pattern, response_text, re.IGNORECASE)
+        if match:
+            token = match.group(1)
+            if token and len(token) < 1024:
+                return token
+    except Exception as e:
+        logging.warning(f"使用正则提取token '{token_field}' 时失败: {e}")
+    return None
+
+
+def _extract_token_auto(response_text: str, content_type: str, token_field: str) -> Optional[str]:
+    if "application/json" in content_type:
+        return _extract_token_from_json(response_text, token_field)
+    else:
+        return _extract_token_from_html(response_text, token_field)
 
 
 def analyze_form_fields(html: str) -> Optional[Dict[str, str]]:

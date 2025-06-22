@@ -61,9 +61,7 @@ class HttpClient:
             raise NetworkError(f"URL解析失败: {url} - {e}")
 
         # 使用带缓存的DNS解析获取IP地址作为会话键
-        session_key = self._resolve_host(hostname)
-        if not session_key:
-            raise NetworkError(f"DNS解析失败，无法继续请求: {hostname}")
+        session_key = f"{parsed_url.scheme}://{hostname}:{parsed_url.port or 80}"
 
         # 从会话池获取或创建一个会话
         session = self._get_session(session_key)

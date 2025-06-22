@@ -58,7 +58,7 @@ threads: 5
 打开终端，确保您已激活虚拟环境，然后运行以下命令：
 
 ```bash
-webloginbrute --config config.yaml
+webloginbrute --config config.yaml --verbose
 ```
 
 ## 5. 查看结果
@@ -125,7 +125,8 @@ webloginbrute \
     --action "https://redteamnotes.com/login/authenticate" \
     --users "users.txt" \
     --passwords "passwords.txt" \
-    --fail-string "Invalid credentials"
+    --fail-string "Invalid credentials" \
+    --verbose
 ```
 
 **使用配置文件:**
@@ -141,7 +142,7 @@ verbose: true
 ```
 然后运行:
 ```bash
-webloginbrute --config config.yaml
+webloginbrute --config config.yaml --verbose
 ```
 
 **找到正确密码后，程序将显示成功信息并退出。** 

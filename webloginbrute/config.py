@@ -75,8 +75,19 @@ class Config(BaseModel):
         parser.add_argument('-l', '--log', help='进度文件路径')
         parser.add_argument('-A', '--aggressive', choices=['A0', 'A1', 'A2', 'A3'], help='对抗级别')
         parser.add_argument('--dry-run', action='store_true', help='测试模式，不实际发送请求')
-        parser.add_argument('-w', '--verbose', action='store_true', help='详细输出')
+        parser.add_argument('--verbose', action='store_true', help='详细输出')
         parser.add_argument('-V', '--version', action='version', version=f'%(prog)s {version}')
+        
+        # 参数别名映射，提升兼容性
+        parser.add_argument('--form-url', dest='url', help='登录表单页面URL (别名)')
+        parser.add_argument('--submit-url', dest='action', help='登录表单提交URL (别名)')
+        parser.add_argument('--username-file', dest='users', help='用户名字典文件 (别名)')
+        parser.add_argument('--password-file', dest='passwords', help='密码字典文件 (别名)')
+        parser.add_argument('--csrf-field', dest='csrf', help='CSRF token字段名 (别名)')
+        parser.add_argument('--cookie-file', dest='cookie', help='Cookie文件路径 (别名)')
+        parser.add_argument('--progress-file', dest='log', help='进度文件路径 (别名)')
+        parser.add_argument('--aggression-level', dest='aggressive', choices=['A0', 'A1', 'A2', 'A3'], help='对抗级别 (别名)')
+        
         defaults = {opt.dest: opt.default for opt in parser._actions}
         args = parser.parse_args()
         return args, defaults

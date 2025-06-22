@@ -7,14 +7,16 @@ import os
 import time
 from collections import deque
 from threading import RLock
-from typing import Any, Dict, Set, Tuple
+from typing import Any, Dict, Set, Tuple, List
 import hmac
 import hashlib
 
 from .exceptions import ConfigurationError
 from .security import SecurityManager
 
-SECRET_KEY = b'webloginbrute-signature-key'  # 可放到配置或环境变量
+SECRET_KEY = os.environ.get('WEBLOGINBRUTE_SECRET', b'webloginbrute-signature-key')
+if isinstance(SECRET_KEY, str):
+    SECRET_KEY = SECRET_KEY.encode('utf-8')
 
 def sign_data(data: str, key=SECRET_KEY):
     return hmac.new(key, data.encode(), hashlib.sha256).hexdigest()

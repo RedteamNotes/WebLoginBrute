@@ -1,43 +1,46 @@
-# 高级功能
+# 高级功能 (Advanced Features)
 
 **版本：0.27.1**
 
-本文档介绍了 WebLoginBrute 的高级功能，包括断点续扫、对抗级别、进度管理等。
+本文档介绍了 WebLoginBrute 的高级功能，包括断点续扫、对抗级别、进度管理、自定义成功判定、大字典分块处理等。
 
 ## 断点续扫
 
 WebLoginBrute 支持断点续扫功能，即使程序中断也能从上次停止的地方继续。
 
-### 启用断点续扫
+### 基本用法
 
 ```bash
+# 启动任务
 webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10 \
-  -r  # 启用断点续扫
+  --url "https://target.com/login" \
+  --action "https://target.com/login" \
+  --users "users.txt" \
+  --passwords "passwords.txt" \
+  --resume
+
+# 中断后继续
+webloginbrute \
+  --url "https://target.com/login" \
+  --action "https://target.com/login" \
+  --users "users.txt" \
+  --passwords "passwords.txt" \
+  --resume
 ```
 
-### 进度文件管理
+### 分块持久化
 
-程序会自动创建进度文件 `bruteforce_progress.json`，包含：
-- 已尝试的用户名密码组合
-- 统计信息
-- 时间戳
-
-### 自定义进度文件
+对于大规模组合数据（超过10万），系统会自动启用分块持久化：
 
 ```bash
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10 \
-  -r \
-  -l my_progress.json  # 自定义进度文件
+# 系统会自动创建分块文件
+# bruteforce_progress.json (主文件)
+# bruteforce_progress.json.chunk_0
+# bruteforce_progress.json.chunk_1
+# ...
+
+# 恢复时会自动加载所有分块
+webloginbrute --config config.yaml --resume
 ```
 
 ## 对抗级别
@@ -46,287 +49,266 @@ WebLoginBrute 提供4个对抗级别，适应不同的目标环境。
 
 ### 级别说明
 
-| 级别 | 名称 | 特点 | 适用场景 |
-|------|------|------|----------|
-| A0 | 静默模式 | 最低对抗，最快速度 | 测试环境、无防护目标 |
-| A1 | 标准模式 | 平衡性能和隐蔽性 | 一般生产环境 |
-| A2 | 激进模式 | 高对抗，较慢速度 | 有WAF/IPS防护 |
-| A3 | 极限模式 | 最高对抗，最慢速度 | 高安全性目标 |
+- **A0 (静默模式)**：最快速度，无延迟，适合测试环境
+- **A1 (标准模式)**：平衡性能和隐蔽性，默认级别
+- **A2 (激进模式)**：高对抗，较慢速度，适合有WAF的目标
+- **A3 (极限模式)**：最高对抗，最慢速度，适合高安全性目标
 
-### 使用对抗级别
+### 使用示例
 
 ```bash
-# 标准模式（默认）
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -A A1
+# 快速测试
+webloginbrute --config config.yaml --aggression-level A0
 
-# 激进模式
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -A A2 \
-  -t 3  # 减少线程数
+# 标准攻击
+webloginbrute --config config.yaml --aggression-level A1
+
+# 高对抗攻击
+webloginbrute --config config.yaml --aggression-level A2
+
+# 极限攻击
+webloginbrute --config config.yaml --aggression-level A3
 ```
 
-### 对抗策略详情
+## 自定义成功判定
 
-#### A0 (静默模式)
-- 无延迟
-- 最大并发
-- 无频率限制检测
-- 无验证码检测
+### 自定义关键字
 
-#### A1 (标准模式)
-- 0.5秒请求间隔
-- 5个并发线程
-- 基础频率限制检测
-- 基础验证码检测
+```python
+# 在代码中自定义成功/失败关键字
+success_keywords = ["dashboard", "welcome", "logout", "profile"]
+failure_keywords = ["invalid", "incorrect", "failed", "error"]
 
-#### A2 (激进模式)
-- 1秒请求间隔
-- 3个并发线程
-- 增强频率限制检测
-- 增强验证码检测
-- 指数退避重试
+# 调用时传入自定义关键字
+result = self._check_login_success(
+    response, 
+    success_keywords=success_keywords,
+    failure_keywords=failure_keywords
+)
+```
 
-#### A3 (极限模式)
-- 2秒请求间隔
-- 2个并发线程
-- 完整频率限制检测
-- 完整验证码检测
-- 会话轮换
-- 短会话生命周期
+### 自定义正则表达式
 
-## 会话管理
+```python
+import re
 
-### Cookie 支持
+def custom_success_check(response):
+    # 自定义成功判定逻辑
+    if response.status_code == 302:
+        location = response.headers.get('Location', '')
+        if '/dashboard' in location or '/admin' in location:
+            return True
+    return False
+```
+
+## Token 提取策略
+
+### 多种提取方式
 
 ```bash
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -c cookies.txt  # Mozilla格式Cookie文件
+# 自动检测 (默认)
+webloginbrute --csrf "token" --config config.yaml
+
+# 指定 JSON 提取
+webloginbrute --csrf "data.token" --config config.yaml
+
+# 指定 HTML 提取
+webloginbrute --csrf "csrf_token" --config config.yaml
+
+# 使用正则提取
+webloginbrute --csrf "token" --config config.yaml
 ```
 
-### 会话池优化
-
-程序自动管理HTTP会话池：
-- 复用连接减少开销
-- 自动清理过期会话
-- 限制内存使用
-
-## 高级配置
-
-### 使用配置文件
+### 高级 Token 配置
 
 ```yaml
-# advanced_config.yaml
+# config.yaml
 url: "https://target.com/login"
 action: "https://target.com/login"
-users: "users.txt"
-passwords: "passwords.txt"
-csrf: "csrf_token"
-threads: 5
-aggressive: "A2"
-resume: true
-log: "advanced_progress.json"
-verbose: true
-
-# 高级选项
-max_retries: 3
-base_delay: 1.0
-session_lifetime: 300
-max_session_pool_size: 100
-enable_adaptive_rate_control: true
-rate_adjustment_threshold: 5
+csrf: "token"
+csrf_strategy: "regex"  # auto, json, html, regex
+csrf_pattern: "name=\"token\"[^>]*value=\"([^\"]+)\""
 ```
 
-### 运行高级配置
+## 验证码检测
+
+### 自定义验证码关键字
+
+```python
+# 检测自定义验证码
+custom_keywords = ["captcha", "验证码", "human verification", "robot check"]
+if contains_captcha(html, keywords=custom_keywords):
+    print("检测到验证码")
+```
+
+### 验证码处理策略
+
+```yaml
+# config.yaml
+captcha_detection: true
+captcha_keywords: ["captcha", "验证码", "human verification"]
+captcha_action: "skip"  # skip, pause, retry
+```
+
+## 大字典分块处理
+
+### 自动分块
 
 ```bash
-webloginbrute --config advanced_config.yaml
+# 系统会自动处理大字典
+webloginbrute \
+  --users "large_users.txt" \
+  --passwords "large_passwords.txt" \
+  --config config.yaml
+
+# 分块处理日志
+[INFO] 检测到大规模数据 (150000 个组合)，启用分块保存
+[DEBUG] 数据块已保存到 'bruteforce_progress.json.chunk_0' (10000 个组合)
+[DEBUG] 数据块已保存到 'bruteforce_progress.json.chunk_1' (10000 个组合)
 ```
 
-## 性能调优
-
-### 线程数优化
+### 手动分块
 
 ```bash
-# 高性能（适合无防护目标）
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 20 \
-  -A A0
+# 分割大字典文件
+split -l 10000 passwords.txt passwords_part_
 
-# 平衡性能（适合一般目标）
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10 \
-  -A A1
-
-# 高隐蔽性（适合有防护目标）
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 3 \
-  -A A2
+# 并行处理多个字典
+for file in passwords_part_*; do
+    sed -i "s|passwords:.*|passwords: \"$file\"|" config.yaml
+    webloginbrute --config config.yaml --verbose &
+done
 ```
 
-### 超时设置
+## 日志分析自动化
+
+### JSON 格式日志
 
 ```bash
-# 网络较慢时增加超时
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -T 60  # 60秒超时
+# 启用 JSON 格式日志
+python3 -c "
+from webloginbrute.logger import setup_logging_json
+setup_logging_json(verbose=True)
+"
+
+# 分析 JSON 日志
+python3 -c "
+import json
+with open('logs/webloginbrute_20231201_120000.json.log') as f:
+    for line in f:
+        data = json.loads(line)
+        if data['level'] == 'INFO' and '登录成功' in data['message']:
+            print(data['message'])
+"
 ```
 
-## 测试模式
-
-使用 `--dry-run` 模式测试配置而不实际发送请求：
+### 统计报告导出
 
 ```bash
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  --dry-run \
-  -w
+# 导出 JSON 格式报告
+webloginbrute --config config.yaml
+# 程序结束时会生成 final_report.json
+
+# 分析报告
+python3 -c "
+import json
+with open('final_report.json') as f:
+    report = json.load(f)
+    print(f'总尝试: {report[\"stats\"][\"total_attempts\"]}')
+    print(f'成功率: {report[\"stats\"][\"successful_attempts\"]}')
+    print(f'平均速率: {report[\"avg_rate\"]:.2f} 次/秒')
+"
 ```
 
-## 详细日志
+## 参数别名支持
 
-启用详细输出查看调试信息：
+### 兼容性参数
 
 ```bash
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -w  # 详细输出
+# 标准参数
+webloginbrute -u https://target.com/login -a https://target.com/login
+
+# 别名参数 (兼容其他工具)
+webloginbrute --form-url https://target.com/login --submit-url https://target.com/login
+webloginbrute --username-file users.txt --password-file passwords.txt
+webloginbrute --csrf-field token --cookie-file cookies.txt
+webloginbrute --progress-file progress.json --aggression-level A2
 ```
 
-## 安全特性
+## 环境变量配置
 
-### 输入验证
-
-程序自动验证：
-- URL格式和安全性
-- 文件路径安全性
-- 参数类型和范围
-
-### 敏感信息保护
-
-- 日志中自动脱敏用户名密码
-- 审计日志独立存储
-- 进度文件加密存储
-
-### 频率限制
-
-内置频率限制保护：
-- 每分钟最大请求数限制
-- 自适应速率控制
-- 指数退避重试
-
-## 最佳实践
-
-### 1. 渐进式测试
+### 安全密钥
 
 ```bash
-# 第一步：测试模式验证配置
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  --dry-run \
-  -w
+# 设置环境变量
+export WEBLOGINBRUTE_SECRET="your-secret-key-here"
 
-# 第二步：小规模测试
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U small_users.txt \
-  -P small_passwords.txt \
-  -t 5 \
-  -A A1 \
-  -w
-
-# 第三步：大规模攻击
-webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10 \
-  -A A2 \
-  -r \
-  -l project_progress.json
+# 程序会自动使用环境变量中的密钥
+webloginbrute --config config.yaml
 ```
 
-### 2. 监控和调整
+### 其他环境变量
 
-- 观察响应时间和错误率
-- 根据目标反应调整对抗级别
-- 监控系统资源使用
+```bash
+# 日志级别
+export WEBLOGINBRUTE_LOG_LEVEL="DEBUG"
 
-### 3. 安全考虑
+# 最大文件大小 (MB)
+export WEBLOGINBRUTE_MAX_FILE_SIZE="200"
 
-- 定期清理进度文件
-- 使用VPN或代理
-- 遵守法律法规
-- 仅测试授权目标
+# 最大行数
+export WEBLOGINBRUTE_MAX_LINES="2000000"
+```
 
-## 故障排除
+## 性能优化
 
-### 常见问题
+### 内存优化
 
-1. **程序运行缓慢**
-   - 检查网络连接
-   - 降低对抗级别
-   - 减少线程数
+```yaml
+# config.yaml
+max_in_memory_attempts: 5000  # 减少内存占用
+chunk_size: 5000              # 分块大小
+enable_session_pool: true     # 启用会话池
+session_lifetime: 300         # 会话生命周期
+```
 
-2. **频繁被阻止**
-   - 提高对抗级别
-   - 增加请求间隔
-   - 使用代理
+### 网络优化
 
-3. **内存使用过高**
-   - 减少会话池大小
-   - 降低线程数
-   - 定期重启程序
+```yaml
+# config.yaml
+timeout: 30                   # 请求超时
+max_retries: 3                # 最大重试次数
+enable_dns_cache: true        # 启用DNS缓存
+max_session_pool_size: 50     # 会话池大小
+```
 
-### 性能监控
+## 安全最佳实践
 
-程序提供详细的性能指标：
-- 平均响应时间
-- 内存使用情况
-- 请求成功率
-- 错误统计
+### 授权合规
 
-## 下一步
+```bash
+# 确保获得授权
+# 遵守相关法规
+# 保护敏感信息
 
-- 学习 [**架构设计**](Architecture.md) 了解内部原理
-- 查看 [**API参考**](API-Reference.md) 进行二次开发
-- 阅读 [**故障排除**](Troubleshooting.md) 解决技术问题 
+# 使用代理隐藏身份
+webloginbrute --config config.yaml --proxy http://proxy:8080
+
+# 定期更换IP
+# 清理痕迹
+```
+
+### 日志安全
+
+```bash
+# 启用审计日志
+# 定期清理日志文件
+# 加密敏感数据
+
+# 使用环境变量存储密钥
+export WEBLOGINBRUTE_SECRET="your-secret-key"
+```
+
+---
+
+**相关链接**: [快速开始](Getting-Started) | [配置说明](Configuration) | [对抗级别](Aggression-Levels) 

@@ -4,10 +4,12 @@
 import logging
 import os
 import chardet
+from functools import lru_cache
 
 from .exceptions import ConfigurationError
 
 
+@lru_cache(maxsize=32)
 def detect_encoding(file_path: str) -> str:
     """检测文件编码"""
     try:

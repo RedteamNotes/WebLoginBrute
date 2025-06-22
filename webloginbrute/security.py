@@ -11,6 +11,15 @@ from urllib.parse import urlparse
 from .constants import SECURITY_CONFIG
 from .exceptions import SecurityError
 
+# 危险字符集合，使用 set 提升检测性能
+DANGEROUS_CHARS = {
+    '\0', '\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07',
+    '\x08', '\x09', '\x0a', '\x0b', '\x0c', '\x0d', '\x0e', '\x0f'
+}
+
+def check_dangerous_chars(filepath: str) -> bool:
+    """检查路径中是否包含危险字符"""
+    return any(char in filepath for char in DANGEROUS_CHARS)
 
 class SecurityManager:
     """安全管理器"""
@@ -183,29 +192,9 @@ class SecurityManager:
         if ext and ext.lower() not in SECURITY_CONFIG["allowed_file_extensions"]:
             raise SecurityError(f"不允许的文件扩展名: {ext}")
 
-        # 新增：检查路径中的危险字符
-        dangerous_chars = [
-            "\0",
-            "\x00",
-            "\x01",
-            "\x02",
-            "\x03",
-            "\x04",
-            "\x05",
-            "\x06",
-            "\x07",
-            "\x08",
-            "\x09",
-            "\x0a",
-            "\x0b",
-            "\x0c",
-            "\x0d",
-            "\x0e",
-            "\x0f",
-        ]
-        for char in dangerous_chars:
-            if char in filepath:
-                raise SecurityError(f"路径包含危险字符: {repr(char)}")
+        # 使用优化的危险字符检测
+        if check_dangerous_chars(filepath):
+            raise SecurityError(f"路径包含危险字符")
 
         # 新增：检查路径是否为空或只包含空白字符
         if not normalized_path.strip():

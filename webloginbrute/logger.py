@@ -6,6 +6,7 @@ import os
 import re
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
+import json
 
 from . import __version__
 
@@ -38,7 +39,8 @@ class SecureFormatter(logging.Formatter):
 
         return super().format(safe_record)
 
-    def _sanitize_log_message(self, message: str) -> str:
+    @staticmethod
+    def _sanitize_log_message(message: str) -> str:
         """脱敏日志消息中的敏感内容"""
         if not isinstance(message, str):
             return message
@@ -60,6 +62,21 @@ class SecureFormatter(logging.Formatter):
         message = re.sub(r'(password|token|cookie|secret|key)=\S+', r'\1=***', message, flags=re.I)
 
         return message
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            'time': self.formatTime(record, self.datefmt),
+            'level': record.levelname,
+            'name': record.name,
+            'message': SecureFormatter._sanitize_log_message(record.getMessage()),
+            'pathname': record.pathname,
+            'lineno': record.lineno,
+        }
+        if record.exc_info:
+            log_record['exc_info'] = self.formatException(record.exc_info)
+        return json.dumps(log_record, ensure_ascii=False)
 
 
 def setup_logging(verbose: bool = False):
@@ -131,3 +148,28 @@ def setup_logging(verbose: bool = False):
     logging.info(f"审计日志: {audit_file}")
     if verbose:
         logging.info("详细模式已启用，将输出DEBUG级别日志到控制台")
+
+
+def setup_logging_json(verbose: bool = False):
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+    formatter = JsonFormatter()
+    console_handler = logging.StreamHandler()
+    console_level = logging.DEBUG if verbose else logging.INFO
+    console_handler.setLevel(console_level)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    log_file = os.path.join(log_dir, f"webloginbrute_{timestamp}.json.log")
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logging.info("JSON 日志模式已启用")

@@ -94,7 +94,7 @@ webloginbrute \
 | `resume` | `-r`, `--resume` | `boolean` | 从上次中断处恢复爆破。默认为 `false`。 |
 | `log` | `-l`, `--log` | `string` | 指定进度文件的保存路径。 |
 | `dry_run` | `--dry-run` | `boolean` | 测试模式，不实际发送请求。|
-| `verbose` | `-w`, `--verbose` | `boolean` | 启用详细日志输出。 |
+| `verbose` | `--verbose` | `boolean` | 启用详细日志输出。 |
 
 ## 参数概览
 
@@ -415,5 +415,5 @@ webloginbrute \
 | `log` | `--log` | `string` | 指定进度文件的路径。默认为 `bruteforce_progress.json`。 |
 | `dry_run` | `--dry-run` | `boolean` | 测试模式。设置为 `true` 或在命令行使用此标志，将不会实际发送攻击请求。 |
 | `aggressive` | `--aggressive` | `string` | 对抗级别 (`A0`, `A1`, `A2`, `A3`)。默认为 `A1`。 |
-| `verbose` | `--verbose` | `boolean` | 详细模式。设置为 `true` 或在命令行使用此标志，将在控制台输出DEBUG日志。 |
+| `verbose` | `--verbose` | `boolean` | 启用详细日志输出。 |
 | `ip_whitelist` | *N/A* | `array` | (仅YAML) IP白名单，支持CIDR。 |

@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 ```bash
 # 使用命令行参数
-webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/login/authenticate -U users.txt -P passwords.txt -t 10 -w
+webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/login/authenticate -U users.txt -P passwords.txt -t 10 --verbose
 
 # 使用配置文件
 webloginbrute --config config.yaml -t 10 -A A2

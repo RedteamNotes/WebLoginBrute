@@ -334,7 +334,7 @@ webloginbrute \
   -U users.txt \
   -P passwords.txt \
   --dry-run \
-  -w
+  --verbose
 ```
 
 ### Q: 如何查看详细日志？
@@ -342,7 +342,7 @@ webloginbrute \
 A: 启用详细输出：
 
 ```bash
--w  # 详细输出
+--verbose  # 详细输出
 ```
 
 ### Q: 如何自定义Cookie？

@@ -303,7 +303,7 @@ split -l 1000 passwords.txt passwords_part_
 cpulimit -p $(pgrep python3) -l 50
 
 # 2. 降低优先级
-nice -n 10 python3 webloginbrute.py --config config.yaml
+nice -n 10 webloginbrute --config config.yaml
 
 # 3. 减少线程数
 threads: 3
