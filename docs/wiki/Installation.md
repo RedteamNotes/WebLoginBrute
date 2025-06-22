@@ -1,6 +1,6 @@
 # 安装指南
 
-## 📋 系统要求
+## 🚀 系统要求
 
 ### 基础要求
 - **Python版本**: 3.7 或更高版本
@@ -14,7 +14,7 @@
 - **CPU**: 多核处理器
 - **存储**: 至少 1GB 可用空间
 
-## 🚀 安装步骤
+## 🛠️ 安装步骤
 
 ### 1. 克隆项目
 ```bash
@@ -22,64 +22,65 @@ git clone https://github.com/RedteamNotes/WebLoginBrute.git
 cd WebLoginBrute
 ```
 
-### 2. 创建虚拟环境（推荐）
+### 2. 创建虚拟环境 (推荐)
 ```bash
 # 使用 venv (Python 3.3+)
 python -m venv venv
-
-# 激活虚拟环境
-# Windows
-venv\Scripts\activate
-# macOS/Linux
-source venv/bin/activate
 ```
 
-### 3. 安装依赖
+### 3. 激活虚拟环境
+- **Windows**:
+  ```powershell
+  .\venv\Scripts\Activate.ps1
+  ```
+- **macOS/Linux**:
+  ```bash
+  source venv/bin/activate
+  ```
+
+### 4. 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. 验证安装
+### 5. 验证安装
+运行以下命令，如果能看到帮助信息，则说明安装成功：
 ```bash
-python webloginbrute.py --help
+python -m webloginbrute --help
 ```
 
 ## 📦 依赖包说明
 
-### 必需依赖
+本项目依赖以下核心 Python 包：
+
+- **requests**: 用于发送 HTTP 请求。
+- **beautifulsoup4**: 用于解析 HTML 内容。
+- **PyYAML**: 用于解析 YAML 配置文件。
+- **psutil**: 用于获取系统性能信息。
+- **pydantic**: 用于数据验证和配置管理。
+- **chardet**: 用于自动检测字典文件编码。
+
+所有依赖及其版本都已在 `requirements.txt` 文件中详细列出。
+
+## 🚨 故障排除
+
+### 1. pip 安装失败
+如果 `pip install` 命令失败或速度过慢，可以尝试使用国内的 PyPI 镜像源：
+```bash
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
-requests>=2.25.1          # HTTP请求库
-beautifulsoup4>=4.9.3     # HTML解析库（使用安全的html.parser）
-pyyaml>=5.4.1             # YAML配置文件支持
+
+### 2. Python 版本问题
+请确保您的 `python` 命令指向的是 3.7 或更高版本的解释器。您可以通过以下命令检查：
+```bash
+python --version
 ```
-
-### 可选依赖
+如果您的系统默认 Python 是 2.x 版本，请尝试使用 `python3` 命令。
+```bash
+python3 -m venv venv
+python3 -m pip install -r requirements.txt
+python3 -m webloginbrute --help
 ```
-psutil>=5.8.0             # 性能监控（可选）
-```
-
-### 依赖包功能说明
-
-#### requests
-- **用途**: HTTP请求处理
-- **版本要求**: 2.25.1+
-- **功能**: 支持代理、会话管理、重试机制
-
-#### beautifulsoup4
-- **用途**: HTML解析
-- **版本要求**: 4.9.3+
-- **安全特性**: 使用 `html.parser` 而非 `lxml`，防止XXE攻击
-- **功能**: 安全的HTML解析和元素提取
-
-#### pyyaml
-- **用途**: YAML配置文件支持
-- **版本要求**: 5.4.1+
-- **功能**: 安全的YAML配置加载和验证
-
-#### psutil (可选)
-- **用途**: 系统性能监控
-- **版本要求**: 5.8.0+
-- **功能**: 内存使用监控、性能统计
 
 ## 🔧 平台特定安装
 
@@ -174,63 +175,6 @@ chmod 600 *.log
 export HTTP_PROXY="http://proxy:port"
 export HTTPS_PROXY="http://proxy:port"
 ```
-
-## 🚨 故障排除
-
-### 常见安装问题
-
-#### 1. Python版本问题
-```bash
-# 检查Python版本
-python --version
-python3 --version
-
-# 如果版本过低，升级Python
-```
-
-#### 2. pip安装失败
-```bash
-# 升级pip
-python -m pip install --upgrade pip
-
-# 使用国内镜像源
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
-```
-
-#### 3. 权限问题
-```bash
-# 使用用户安装
-pip install --user -r requirements.txt
-
-# 或使用虚拟环境
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\activate     # Windows
-```
-
-#### 4. 依赖冲突
-```bash
-# 清理pip缓存
-pip cache purge
-
-# 重新安装
-pip uninstall requests beautifulsoup4 pyyaml psutil
-pip install -r requirements.txt
-```
-
-### 平台特定问题
-
-#### Windows
-- 确保安装了Visual C++ Build Tools
-- 使用管理员权限运行命令提示符
-
-#### macOS
-- 确保安装了Xcode Command Line Tools
-- 使用Homebrew管理Python版本
-
-#### Linux
-- 确保安装了python3-dev包
-- 检查系统防火墙设置
 
 ## 📊 性能优化
 

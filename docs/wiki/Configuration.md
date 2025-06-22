@@ -1,8 +1,100 @@
-# 配置指南
+# 配置详解
 
-**版本：0.27.1**
+本文档详细说明了 `WebLoginBrute` 的所有配置选项，您可以通过 **YAML 配置文件** 或 **命令行参数** 进行设置。
 
-本文档详细介绍了 WebLoginBrute 的所有配置选项，包括命令行参数和 YAML 配置文件。
+## 配置方式
+
+### 1. YAML 配置文件 (推荐)
+这是推荐的方式，尤其适用于复杂或需要复用的任务。
+
+**示例 `config.yaml`:**
+```yaml
+# --- 核心配置 (必需) ---
+url: "http://example.com/login"
+action: "http://example.com/perform_login"
+users: "wordlists/users.txt"
+passwords: "wordlists/passwords.txt"
+
+# --- 结果判断 (必需) ---
+# 定义如何判断登录成功或失败，至少提供一个
+success_string: "Welcome to your dashboard"
+fail_string: "Invalid username or password"
+
+# --- 性能与网络 ---
+threads: 10
+timeout: 20
+
+# --- 功能选项 ---
+csrf: "csrf_token"
+resume: true
+verbose: true
+aggressive: "A2"
+log: "my_task_progress.json"
+```
+
+**使用方法:**
+```bash
+python -m webloginbrute --config config.yaml
+```
+
+### 2. 命令行参数
+您也可以直接通过命令行参数进行配置，这适用于简单的、一次性的任务。
+
+**示例:**
+```bash
+python -m webloginbrute \
+    --url "http://example.com/login" \
+    --action "http://example.com/perform_login" \
+    --users "wordlists/users.txt" \
+    --passwords "wordlists/passwords.txt" \
+    --fail-string "Invalid username or password" \
+    --threads 10 \
+    -v
+```
+
+### 配置优先级
+**命令行参数 > YAML 文件 > 默认值**
+- 如果一个选项同时在命令行和 YAML 文件中设置，将优先使用命令行中的值。
+
+## 参数详解
+
+### 核心参数 (Core)
+
+| 参数名 | 命令行 | 类型 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `url` | `-u`, `--url` | `string` | **必需。** 登录表单所在的页面 URL。 |
+| `action` | `-a`, `--action` | `string` | **必需。** 表单提交的目标 URL。 |
+| `users` | `-U`, `--users` | `string` | **必需。** 用户名字典文件的路径。 |
+| `passwords` | `-P`, `--passwords` | `string` | **必需。** 密码字典文件的路径。 |
+
+### 结果判断 (Result Identification)
+
+| 参数名 | 命令行 | 类型 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `success_string` | `--success-string` | `string` | 判断登录**成功**的特征字符串。 |
+| `fail_string` | `--fail-string` | `string` | 判断登录**失败**的特征字符串。 |
+| `success_redirect` | `--success-redirect` | `string` | 登录成功后会跳转到的目标 URL。 |
+| `failure_redirect` | `--failure-redirect` | `string` | 登录失败后会跳转到的目标 URL。 |
+> **注意**: 您必须至少提供以上四个选项中的一个，以便程序判断登录结果。
+
+### 性能与网络 (Performance & Network)
+
+| 参数名 | 命令行 | 类型 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `threads` | `-t`, `--threads` | `int` | 并发线程数。默认为 `5`。 |
+| `timeout` | `-T`, `--timeout` | `int` | HTTP 请求超时时间（秒）。默认为 `30`。 |
+| `aggressive` | `-A`, `--aggressive` | `string` | 对抗级别 (`A0`, `A1`, `A2`, `A3`)。默认为 `A1`。 |
+
+### 功能选项 (Features)
+
+| 参数名 | 命令行 | 类型 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `csrf` | `-s`, `--csrf` | `string` | CSRF Token 在表单中的 `name` 属性值。 |
+| `cookie` | `-c`, `--cookie` | `string` | 包含预设 Cookie 的文件路径。 |
+| `resume` | `-r`, `--resume` | `boolean` | 从上次中断处恢复爆破。默认为 `false`。 |
+| `log` | `-g`, `--log` | `string` | 指定进度文件的保存路径。 |
+| `dry_run` | `--dry-run` | `boolean` | 测试模式，不实际发送请求。|
+| `verbose` | `-v`, `--verbose` | `boolean` | 启用详细日志输出。 |
 
 ## 参数概览
 
@@ -325,4 +417,4 @@ python -m webloginbrute \
 | `aggressive` | `--aggressive` | `string` | 对抗级别 (`A0`, `A1`, `A2`, `A3`)。默认为 `A1`。 |
 | `verbose` | `--verbose` | `boolean` | 详细模式。设置为 `true` 或在命令行使用此标志，将在控制台输出DEBUG日志。 |
 | `ip_whitelist` | *N/A* | `array` | (仅YAML) IP白名单，支持CIDR。 |
-| `ip_blacklist` | *N/A* | `array` | (仅YAML) IP黑名单，支持CIDR。 | 
+| `

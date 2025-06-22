@@ -6,23 +6,23 @@
 
 ## 快速导航
 
-### 📖 入门指南
-- [**安装指南**](Installation.md) - 如何安装和配置 WebLoginBrute
-- [**快速开始**](Getting-Started.md) - 5分钟上手教程
-- [**配置详解**](Configuration.md) - 所有配置项的详细说明
+### �� 入门指南
+- [**安装指南**](./Installation) - 如何安装和配置 WebLoginBrute
+- [**快速开始**](./Getting-Started) - 5分钟上手教程
+- [**配置详解**](./Configuration) - 所有配置项的详细说明
 
 ### 🚀 高级功能
-- [**对抗级别**](Aggression-Levels.md) - 了解不同的对抗策略
-- [**高级特性**](Advanced-Features.md) - 断点续扫、进度管理等
-- [**架构设计**](Architecture.md) - 深入了解工具的内部工作原理
+- [**对抗级别**](./Aggression-Levels) - 了解不同的对抗策略
+- [**高级特性**](./Advanced-Features) - 断点续扫、进度管理等
+- [**架构设计**](./Architecture) - 深入了解工具的内部工作原理
 
 ### 🔧 开发者文档
-- [**API参考**](API-Reference.md) - 完整的API文档
-- [**故障排除**](Troubleshooting.md) - 常见问题和解决方案
-- [**常见问题**](FAQ.md) - 用户常见问题解答
+- [**API参考**](./API-Reference) - 完整的API文档
+- [**故障排除**](./Troubleshooting) - 常见问题和解决方案
+- [**常见问题**](./FAQ) - 用户常见问题解答
 
 ### 📚 教程和示例
-- [**实战教程**](Tutorials.md) - 实际使用场景的详细教程
+- [**实战教程**](./Tutorials) - 实际使用场景的详细教程
 
 ## 工具特性
 
