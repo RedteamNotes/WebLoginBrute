@@ -4,58 +4,42 @@
 import argparse
 import os
 import yaml
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from pydantic import BaseModel, Field, validator, ValidationError
 from .exceptions import ConfigurationError
 
-class Config:
+class Config(BaseModel):
     """
-    统一管理所有配置项，支持命令行和YAML配置文件。
+    统一管理所有配置项，支持命令行和YAML配置文件，基于pydantic自动类型和范围校验。
     """
-    # 显式声明所有主要配置项
-    form_url: str
-    submit_url: str
-    username_file: str
-    password_file: str
-    csrf: str | None
-    login_field: str | None
-    login_value: str | None
-    cookie_file: str | None
-    timeout: int
-    threads: int
-    resume: bool
-    progress_file: str
-    aggression_level: str
-    dry_run: bool
-    verbose: bool
+    form_url: str = Field(..., description="登录表单URL")
+    submit_url: str = Field(..., description="登录提交URL")
+    username_file: str = Field(..., description="用户名字典文件")
+    password_file: str = Field(..., description="密码字典文件")
+    csrf: Optional[str] = Field(None, description="CSRF token字段名")
+    login_field: Optional[str] = None
+    login_value: Optional[str] = None
+    cookie_file: Optional[str] = None
+    timeout: int = Field(30, ge=1, le=600, description="请求超时时间（秒）")
+    threads: int = Field(5, ge=1, le=100, description="并发线程数")
+    resume: bool = False
+    progress_file: str = Field('bruteforce_progress.json', description="进度文件路径")
+    aggression_level: str = Field('A1', regex=r'^A[0-3]$', description="对抗级别")
+    dry_run: bool = False
+    verbose: bool = False
 
-    def __init__(self):
-        # 1. 解析命令行参数
-        args = self.parse_args()
+    @classmethod
+    def from_args_and_yaml(cls):
+        args = cls.parse_args()
         config_file = getattr(args, 'config_file', None)
         file_config = {}
         if config_file:
-            file_config = self.load_yaml_config(config_file)
-        
-        # 2. 合并配置，命令行优先
+            file_config = cls.load_yaml_config(config_file)
         merged = {**file_config, **vars(args)}
-        # 显式赋值
-        self.form_url = merged.get('form_url') or ""
-        self.submit_url = merged.get('submit_url') or ""
-        self.username_file = merged.get('username_file') or ""
-        self.password_file = merged.get('password_file') or ""
-        self.csrf = merged.get('csrf')
-        self.login_field = merged.get('login_field')
-        self.login_value = merged.get('login_value')
-        self.cookie_file = merged.get('cookie_file')
-        self.timeout = merged.get('timeout', 30)
-        self.threads = merged.get('threads', 5)
-        self.resume = merged.get('resume', False)
-        self.progress_file = merged.get('progress_file', 'bruteforce_progress.json')
-        self.aggression_level = merged.get('aggression_level', 'A1')
-        self.dry_run = merged.get('dry_run', False)
-        self.verbose = merged.get('verbose', False)
-        # 3. 校验配置
-        self.validate()
+        try:
+            return cls.parse_obj(merged)
+        except ValidationError as e:
+            raise ConfigurationError(f"配置参数校验失败: {e}")
 
     @staticmethod
     def parse_args():
@@ -85,19 +69,14 @@ class Config:
         with open(path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f) or {}
 
-    def validate(self):
-        # 检查必需项
-        required = ['form_url', 'submit_url', 'username_file', 'password_file']
-        for key in required:
-            if not hasattr(self, key) or not getattr(self, key):
-                raise ConfigurationError(f"缺少必需配置项: {key}")
-        # 检查文件存在性
-        if not os.path.exists(self.username_file):
-            raise ConfigurationError(f"用户名文件不存在: {self.username_file}")
-        if not os.path.exists(self.password_file):
-            raise ConfigurationError(f"密码文件不存在: {self.password_file}")
-        # 检查URL格式
-        if not (self.form_url.startswith('http://') or self.form_url.startswith('https://')):
-            raise ConfigurationError(f"表单URL格式不正确: {self.form_url}")
-        if not (self.submit_url.startswith('http://') or self.submit_url.startswith('https://')):
-            raise ConfigurationError(f"提交URL格式不正确: {self.submit_url}")
+    @validator('form_url', 'submit_url')
+    def url_must_be_http(cls, v):
+        if not (v.startswith('http://') or v.startswith('https://')):
+            raise ValueError('URL必须以http://或https://开头')
+        return v
+
+    @validator('username_file', 'password_file')
+    def file_must_exist(cls, v):
+        if not os.path.exists(v):
+            raise ValueError(f'文件不存在: {v}')
+        return v
