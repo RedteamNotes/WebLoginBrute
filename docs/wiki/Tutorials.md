@@ -46,7 +46,7 @@ failure_redirect: "https://test.example.com/login"
 username_list: "users.txt"
 password_list: "passwords.txt"
 threads: 5
-aggression_level: "A1"
+level: "A1"
 ```
 
 4. **运行测试**
@@ -182,7 +182,7 @@ done
 #### 配置
 ```yaml
 # 启用会话池
-aggression_level: "A2"
+level: "A2"
 enable_session_pool: true
 session_lifetime: 300
 
@@ -215,10 +215,10 @@ failure_redirect: "https://company.com/login"
 username_list: "common_users.txt"
 password_list: "top_1000_passwords.txt"
 threads: 10
-aggression_level: "A0"  # 快速模式
+level: "A0"  # 快速模式
 
 # 第二阶段：深度测试
-aggression_level: "A2"  # 中对抗模式
+level: "A2"  # 中对抗模式
 threads: 5
 proxy: "http://proxy.company.com:8080"
 enable_session_pool: true
@@ -250,7 +250,7 @@ failure_redirect: "https://shop.example.com/login"
 username_list: "customer_emails.txt"
 password_list: "common_passwords.txt"
 threads: 3
-aggression_level: "A3"  # 高对抗模式
+level: "A3"  # 高对抗模式
 proxy: "http://rotating-proxy.com:8080"
 min_delay: 3.0
 max_delay: 15.0
@@ -284,7 +284,7 @@ failure_redirect: "http://internal.test.com/login"
 username_list: "internal_users.txt"
 password_list: "internal_passwords.txt"
 threads: 20
-aggression_level: "A0"  # 全速模式
+level: "A0"  # 全速模式
 enable_smart_delay: false
 enable_session_pool: false
 ```
@@ -343,7 +343,7 @@ curl -s "https://target.com/login" | grep -i "captcha"
 ```yaml
 # 高性能配置
 threads: 20                    # 高并发
-aggression_level: "A0"         # 无延迟
+level: "A0"         # 无延迟
 enable_smart_delay: false      # 关闭智能延迟
 enable_session_pool: false     # 关闭会话池
 ```
@@ -352,7 +352,7 @@ enable_session_pool: false     # 关闭会话池
 ```yaml
 # 高隐蔽配置
 threads: 3                     # 低并发
-aggression_level: "A3"         # 高对抗
+level: "A3"         # 高对抗
 proxy: "http://proxy.com:8080" # 使用代理
 min_delay: 5.0                 # 长延迟
 max_delay: 20.0                # 更长延迟
@@ -376,7 +376,7 @@ grep "captcha" attack.log
 # 根据检测情况调整配置
 if grep -q "rate limit" attack.log; then
     # 降低级别
-    sed -i 's/aggression_level: "A1"/aggression_level: "A2"/' config.yaml
+    sed -i 's/level: "A1"/level: "A2"/' config.yaml
     sed -i 's/threads: 10/threads: 5/' config.yaml
 fi
 ```
@@ -404,9 +404,9 @@ python3 -c "
 import json
 with open('bruteforce_progress.json') as f:
     data = json.load(f)
-print(f'总尝试: {data[\"total_attempts\"]}')
-print(f'成功率: {data[\"success_rate\"]:.2f}%')
-print(f'平均速度: {data[\"avg_speed\"]:.2f} 次/秒')
+print(f'总尝试: {data["total_attempts"]}')
+print(f'成功率: {data["success_rate"]:.2f}%')
+print(f'平均速度: {data["avg_speed"]:.2f} 次/秒')
 "
 ```
 

@@ -52,30 +52,68 @@ python -m webloginbrute --config-file my_task.yaml
 
 对于快速、一次性的任务，直接使用命令行参数非常方便。
 
-### 基础用法
+### 必需参数
 
-```bash
-python -m webloginbrute \
-    --form-url "http://example.com/login" \
-    --submit-url "http://example.com/perform_login" \
-    --username-file "wordlists/users.txt" \
-    --password-file "wordlists/passwords.txt"
-```
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `--form` | 登录表单URL | `--form https://example.com/login` |
+| `--submit` | 登录提交URL | `--submit https://example.com/login` |
+| `--users` | 用户名字典文件 | `--users wordlists/users.txt` |
+| `--passwords` | 密码字典文件 | `--passwords wordlists/passwords.txt` |
+
+### 可选参数
+
+| 参数 | 说明 | 默认值 | 示例 |
+|------|------|--------|------|
+| `--config` | YAML配置文件路径 | - | `--config config.yaml` |
+| `--csrf` | CSRF token字段名 | - | `--csrf csrf_token` |
+| `--field` | 额外的登录字段名 | - | `--field remember` |
+| `--value` | 额外的登录字段值 | - | `--value 1` |
+| `--cookies` | Cookie文件路径 | - | `--cookies cookies.txt` |
+| `--timeout` | 请求超时时间（秒） | 30 | `--timeout 15` |
+| `--threads` | 并发线程数 | 5 | `--threads 10` |
+| `--resume` | 从上次中断的地方继续 | false | `--resume` |
+| `--progress` | 进度文件路径 | `bruteforce_progress.json` | `--progress my_progress.json` |
+| `--level` | 对抗级别 | A1 | `--level A2` |
+| `--dry-run` | 测试模式，不实际发送请求 | false | `--dry-run` |
+| `--verbose` | 详细输出 | false | `--verbose` |
 
 ### 高级用法
 
-你可以组合使用多个参数来实现更复杂的功能：
-
 ```bash
+# 带CSRF token的登录
 python -m webloginbrute \
-    --form-url "http://example.com/login" \
-    --submit-url "http://example.com/perform_login" \
-    --username-file "wordlists/users.txt" \
-    --password-file "wordlists/passwords.txt" \
-    --csrf "csrf_token" \
-    --threads 10 \
+    --form "https://example.com/login" \
+    --submit "https://example.com/login" \
+    --users "wordlists/users.txt" \
+    --passwords "wordlists/passwords.txt" \
+    --csrf "csrf_token"
+
+# 使用Cookie文件
+python -m webloginbrute \
+    --form "https://example.com/login" \
+    --submit "https://example.com/login" \
+    --users "users.txt" \
+    --passwords "passwords.txt" \
+    --cookies "cookies.txt"
+
+# 高并发配置
+python -m webloginbrute \
+    --form "https://example.com/login" \
+    --submit "https://example.com/login" \
+    --users "users.txt" \
+    --passwords "passwords.txt" \
+    --threads 20 \
+    --timeout 10
+
+# 从上次中断的地方继续
+python -m webloginbrute \
+    --form "https://example.com/login" \
+    --submit "https://example.com/login" \
+    --users "users.txt" \
+    --passwords "passwords.txt" \
     --resume \
-    --verbose
+    --progress "my_progress.json"
 ```
 
 ---

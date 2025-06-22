@@ -1,34 +1,24 @@
-# WebLoginBrute 配置文件模板
-# 版本: 0.0.27
-# 将此文件复制为 config.yaml 并根据您的目标进行修改。
+# WebLoginBrute 配置文件示例
+# 复制此文件为 config.yaml 并根据需要修改
 
-# --- 核心配置 (必需) ---
-form_url: "http://example.com/login"          # 登录表单页面的URL
-submit_url: "http://example.com/perform_login"  # 表单提交的目标URL
-username_file: "wordlists/users.txt"      # 用户名字典文件路径
-password_file: "wordlists/passwords.txt"      # 密码字典文件路径
+# 必需参数
+form: "https://example.com/login"           # 登录表单URL
+submit: "https://example.com/login"         # 登录提交URL
+users: "wordlists/users.txt"                # 用户名字典文件
+passwords: "wordlists/passwords.txt"        # 密码字典文件
 
-# --- 目标特性配置 (可选) ---
-csrf: "csrf_token_name"                       # 目标网站的CSRF Token字段名 (如果存在)
-login_field: "extra_field"                    # 额外的登录字段名 (例如 'login_type')
-login_value: "user_login"                     # 额外的登录字段值
-
-# --- 网络与性能配置 (可选) ---
-threads: 10                                   # 并发线程数 (默认: 5)
-timeout: 15                                   # HTTP请求超时时间 (秒, 默认: 30)
-cookie_file: "cookies.txt"                    # 加载包含Cookie的Mozilla格式文件
-
-# --- 流程控制 (可选) ---
-resume: true                                  # 是否从上次中断的地方继续 (默认: false)
-progress_file: "my_progress.json"             # 自定义进度文件名 (默认: bruteforce_progress.json)
-dry_run: false                                # 测试模式，不实际发送请求 (默认: false)
-
-# --- 对抗性与隐蔽性 (可选) ---
-aggression_level: "A1"                        # 对抗级别 (A0-静默, A1-标准, A2-激进, A3-极限; 默认: A1)
-                                              # 更高的级别意味着更慢的请求和更长的延迟，以更好地规避检测
-
-# --- 输出与日志 (可选) ---
-verbose: true                                 # 详细输出模式，在控制台显示DEBUG级别的日志 (默认: false)
+# 可选参数
+csrf: "csrf_token"                          # CSRF token字段名（如目标无CSRF token可省略）
+field: "remember"                           # 额外的登录字段名
+value: "1"                                  # 额外的登录字段值
+cookies: "cookies.txt"                      # Cookie文件路径
+timeout: 30                                 # 请求超时时间（秒）
+threads: 5                                  # 并发线程数
+resume: false                               # 从上次中断的地方继续
+progress: "bruteforce_progress.json"        # 进度文件路径
+level: "A1"                                 # 对抗级别（A0=静默，A1=标准，A2=激进，A3=极限）
+dry_run: false                              # 测试模式，不实际发送请求
+verbose: false                              # 详细输出
 
 # --- 安全配置 (通常不需要修改) ---
 # 以下配置用于增强安全性，如需覆盖默认值，可在此处定义

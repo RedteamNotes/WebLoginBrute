@@ -189,7 +189,7 @@ A: 可能是以下原因之一：
 
 ## Q2: 程序提示"配置参数校验失败"，我该怎么办？
 A: 这意味着你的配置项不符合要求。请检查：
-1.  **必需项是否都已提供**: `form_url`, `submit_url`, `username_file`, `password_file`。
+1.  **必需项是否都已提供**: `form`, `submit`, `users`, `passwords`。
 2.  **文件路径是否正确**: 字典文件、cookie文件等是否存在。
 3.  **参数类型是否正确**: `threads` 和 `timeout` 必须是整数。
 4.  **URL格式是否正确**: 必须以 `http://` 或 `https://` 开头。

@@ -42,42 +42,68 @@
 
 ## :fast_forward: 快速开始
 
-WebLoginBrute可以通过两种方式进行配置：**命令行参数**或**YAML配置文件**。
-
-### 方式一：使用命令行参数 (推荐用于快速测试)
+### 基本用法
 
 ```bash
+# 使用命令行参数
 python -m webloginbrute \
-    --form-url "https://redteamnotes.com/login" \
-    --submit-url "https://redteamnotes.com/login/authenticate" \
-    --username-file "wordlists/users.txt" \
-    --password-file "wordlists/passwords.txt" \
-    --csrf "csrf_token" \
-    --threads 10 \
-    --verbose
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users wordlists/users.txt \
+  --passwords wordlists/passwords.txt
+
+# 使用配置文件
+python -m webloginbrute --config config.yaml
+
+# 带CSRF token的登录
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --csrf csrf_token
+
+# 高级配置示例
+python -m webloginbrute \
+  --form https://example.com/login \
+  --submit https://example.com/login \
+  --users users.txt \
+  --passwords passwords.txt \
+  --csrf csrf_token \
+  --field remember \
+  --value 1 \
+  --cookies cookies.txt \
+  --threads 10 \
+  --timeout 15 \
+  --level A2 \
+  --resume \
+  --verbose
 ```
 
-### 方式二：使用YAML配置文件 (推荐用于复杂场景)
+---
 
-1.  创建一个 `config.yaml` 文件 (可以从 `config.example.yaml` 复制和修改)。
+## :gear: 配置
 
-    ```yaml
-    # config.yaml
-    form_url: "https://redteamnotes.com/login"
-    submit_url: "https://redteamnotes.com/login/authenticate"
-    username_file: "wordlists/users.txt"
-    password_file: "wordlists/passwords.txt"
-    csrf: "csrf_token"
-    threads: 10
-    timeout: 20
-    verbose: true
-    # 更多高级配置...
-    ```
+### 配置文件示例
 
-2.  运行程序并指定配置文件:
-    ```bash
-    python -m webloginbrute --config-file config.yaml
-    ```
+```yaml
+# config.yaml
+form: "https://example.com/login"
+submit: "https://example.com/login"
+users: "wordlists/users.txt"
+passwords: "wordlists/passwords.txt"
+csrf: "csrf_token"
+field: "remember"
+value: "1"
+cookies: "cookies.txt"
+threads: 10
+timeout: 20
+level: "A2"
+resume: true
+progress: "my_progress.json"
+dry_run: false
+verbose: true
+```
 
 ---
 

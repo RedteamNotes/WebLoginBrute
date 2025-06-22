@@ -22,12 +22,10 @@ class StateManager:
         self.config = config
         self.lock = RLock()
 
-        # 安全地获取进度文件路径
-        progress_file = getattr(config, "progress_file", "bruteforce_progress.json")
-        try:
-            self.progress_file = SecurityManager.get_safe_path(progress_file)
-        except Exception as e:
-            raise ConfigurationError(f"进度文件路径不安全: {e}")
+        # 获取进度文件路径
+        progress_file = getattr(config, "progress", "bruteforce_progress.json")
+        # 安全化路径
+        self.progress_file = SecurityManager.get_safe_path(progress_file)
 
         # 使用高效的数据结构来管理已尝试的组合
         # deque 用于限制内存占用，set 用于快速查找

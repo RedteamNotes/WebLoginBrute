@@ -10,7 +10,7 @@ from .exceptions import ConfigurationError
 
 def main():
     try:
-        config = Config()
+        config = Config.from_args_and_yaml()
         brute = WebLoginBrute(config)
         brute.run()
     except ConfigurationError as e:

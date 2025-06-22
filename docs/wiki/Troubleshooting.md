@@ -109,9 +109,9 @@ target_url: https://example.com/login  # 错误
 target_url: "https://example.com/login"  # 正确
 
 # 2. 缩进错误
-aggression_level: "A1"
+level: "A1"
   min_delay: 1.0  # 错误缩进
-aggression_level: "A1"
+level: "A1"
 min_delay: 1.0    # 正确缩进
 
 # 3. 类型错误
@@ -254,7 +254,7 @@ failure_string: "Invalid credentials"
 #### 解决方案
 ```yaml
 # 1. 降低对抗级别
-aggression_level: "A0"  # 全速模式
+level: "A0"  # 全速模式
 
 # 2. 增加线程数
 threads: 20

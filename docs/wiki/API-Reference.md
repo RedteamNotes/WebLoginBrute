@@ -16,12 +16,21 @@
 
 -   **`Config()`**: 构造函数。它会自动解析命令行参数和YAML文件来填充配置属性。
 -   **属性**:
-    -   `form_url: str`
-    -   `submit_url: str`
-    -   `username_file: str`
-    -   `password_file: str`
-    -   `threads: int`
-    -   `...` (其他所有配置项)
+    -   `form: str` - 登录表单URL
+    -   `submit: str` - 登录提交URL
+    -   `users: str` - 用户名字典文件
+    -   `passwords: str` - 密码字典文件
+    -   `csrf: Optional[str]` - CSRF token字段名
+    -   `field: Optional[str]` - 额外的登录字段名
+    -   `value: Optional[str]` - 额外的登录字段值
+    -   `cookies: Optional[str]` - Cookie文件路径
+    -   `timeout: int` - 请求超时时间（秒）
+    -   `threads: int` - 并发线程数
+    -   `resume: bool` - 是否从上次中断的地方继续
+    -   `progress: str` - 进度文件路径
+    -   `level: str` - 对抗级别
+    -   `dry_run: bool` - 测试模式
+    -   `verbose: bool` - 详细输出
 
     你可以通过编程方式创建和填充 `Config` 对象，而不是依赖命令行解析，从而将爆破器集成到你自己的脚本中。
 
@@ -102,42 +111,24 @@ if __name__ == "__main__":
 由于配置现在由 `pydantic` 管理，最清晰的方式是创建一个字典，然后使用 `Config.parse_obj()` 方法来实例化和验证配置。
 
 ```python
-# integration_script.py
-from webloginbrute.config import Config, ConfigurationError
-from webloginbrute.core import WebLoginBrute
+from webloginbrute import WebLoginBrute, Config
 
-# 1. 定义你的配置字典
-#    所有字段名与YAML文件中的键完全一致。
-my_settings = {
-    "form_url": "https://redteamnotes.com/login",
-    "submit_url": "https://redteamnotes.com/login/authenticate",
-    "username_file": "wordlists/users.txt",  # 确保这个路径是正确的
-    "password_file": "wordlists/passwords.txt", # 确保这个路径是正确的
-    "threads": 8,
-    "timeout": 15,
-    "verbose": True,
-    "aggression_level": "A1"
-    # 你可以在这里添加任何其他有效的配置项
-}
+# 创建配置
+config = Config(
+    form="https://redteamnotes.com/login",
+    submit="https://redteamnotes.com/login/authenticate",
+    users="wordlists/users.txt",  # 确保这个路径是正确的
+    passwords="wordlists/passwords.txt", # 确保这个路径是正确的
+    csrf="csrf_token",
+    threads=10,
+    level="A1"
+)
 
-# 2. 验证配置并运行爆破
-try:
-    # 使用 parse_obj 从字典创建和验证配置
-    config = Config.parse_obj(my_settings)
-    
-    # 注入配置并运行
-    brute = WebLoginBrute(config)
-    brute.run()
+# 创建爆破器实例
+brute = WebLoginBrute(config)
 
-except ConfigurationError as e:
-    # 捕获自定义的配置错误
-    print(f"配置错误: {e}")
-except FileNotFoundError as e:
-    # pydantic的路径校验会触发这个错误
-    print(f"文件未找到: {e}")
-except Exception as e:
-    # 捕获其他所有可能的错误
-    print(f"爆破任务执行失败: {e}")
+# 开始攻击
+brute.run()
 ```
 
 这个API参考为你提供了与WebLoginBrute核心组件交互和扩展其功能的基础。 
