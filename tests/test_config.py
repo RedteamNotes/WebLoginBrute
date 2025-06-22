@@ -41,7 +41,16 @@ class TestConfig(unittest.TestCase):
             timeout=30,
             threads=10,
             log="test.log",
-            aggressive=1
+            aggressive=1,
+            max_memory_mb=500,
+            memory_warning_threshold=0.8,
+            memory_critical_threshold=0.9,
+            memory_cleanup_interval=60,
+            session_rotation_interval=300,
+            session_lifetime=600,
+            max_session_pool_size=100,
+            enable_session_rotation=True,
+            rotation_strategy="time"
         )
         
         self.assertEqual(config.url, "https://example.com/login")
@@ -301,7 +310,8 @@ class TestConfig(unittest.TestCase):
             'aggressive': 1,
             'dry_run': False,
             'verbose': False,
-            'version': False
+            'version': False,
+            'enable_session_rotation': True
         })()
         
         mock_defaults = {
@@ -326,8 +336,8 @@ class TestConfig(unittest.TestCase):
         
         mock_parse_args.return_value = (mock_args, mock_defaults)
         
-        # 测试参数解析
         args, defaults = Config.parse_args()
+        
         self.assertEqual(args.url, 'https://example.com/login')
         self.assertEqual(args.action, 'https://example.com/authenticate')
         self.assertEqual(args.users, self.users_file)

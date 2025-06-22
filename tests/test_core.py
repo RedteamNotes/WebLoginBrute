@@ -37,7 +37,16 @@ class TestWebLoginBrute(unittest.TestCase):
             timeout=30,
             threads=10,
             log="test.log",
-            aggressive=1
+            aggressive=1,
+            max_memory_mb=500,
+            memory_warning_threshold=0.8,
+            memory_critical_threshold=0.9,
+            memory_cleanup_interval=60,
+            session_rotation_interval=300,
+            session_lifetime=600,
+            max_session_pool_size=100,
+            enable_session_rotation=True,
+            rotation_strategy="time"
         )
 
     def tearDown(self):
@@ -80,6 +89,11 @@ class TestWebLoginBrute(unittest.TestCase):
     def test_load_wordlists(self, mock_load_wordlist, mock_stats, mock_state, mock_http, mock_logging):
         """测试字典加载"""
         mock_load_wordlist.return_value = ["admin", "user"]
+        
+        # 模拟状态管理器的load_progress方法
+        mock_state_instance = Mock()
+        mock_state_instance.load_progress.return_value = (set(), {})
+        mock_state.return_value = mock_state_instance
         
         brute = WebLoginBrute(self.config)
         brute._load_wordlists()

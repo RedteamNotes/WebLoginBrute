@@ -115,7 +115,7 @@ class Config(BaseModel):
         args = parser.parse_args()
         
         # 处理禁用会话轮换的参数
-        if args.disable_session_rotation:
+        if hasattr(args, 'disable_session_rotation') and args.disable_session_rotation:
             args.enable_session_rotation = False
         
         return args, defaults

@@ -79,7 +79,10 @@ class HttpClient:
         session = self.session_rotator.get_session(session_key, cookie_file)
         
         # 准备请求头
-        headers = kwargs.get('headers', {}).copy()
+        headers = kwargs.get('headers', {})
+        if headers is None:
+            headers = {}
+        headers = headers.copy()
         headers.setdefault('User-Agent', random.choice(USER_AGENTS))
         for key, value in BROWSER_HEADERS.items():
             headers.setdefault(key, value)

@@ -345,13 +345,21 @@ class WebLoginBrute:
         return False
 
     def _check_login_success(self, response, success_keywords=None, failure_keywords=None) -> bool:
-        if response.status_code == 200:
-            response_lower = response.text.lower()
-            if success_keywords is None:
-                success_keywords = ['welcome', 'dashboard', 'logout', 'profile', 'success']
-            if failure_keywords is None:
-                failure_keywords = ['invalid', 'incorrect', 'failed', 'error', 'login']
-            success_count = sum(1 for keyword in success_keywords if keyword in response_lower)
-            failure_count = sum(1 for keyword in failure_keywords if keyword in response_lower)
-            return success_count > failure_count
-        return False
+        """检查登录是否成功"""
+        if not response or not hasattr(response, 'text'):
+            return False
+        
+        # 默认成功/失败关键词
+        if success_keywords is None:
+            success_keywords = ['welcome', 'dashboard', 'logout', 'profile', 'success', '登录成功']
+        if failure_keywords is None:
+            failure_keywords = ['invalid', 'incorrect', 'failed', 'error', 'login', '登录失败']
+        
+        response_lower = response.text.lower()
+        
+        # 计算成功和失败关键词的匹配数
+        success_count = sum(1 for keyword in success_keywords if keyword.lower() in response_lower)
+        failure_count = sum(1 for keyword in failure_keywords if keyword.lower() in response_lower)
+        
+        # 如果成功关键词匹配数大于失败关键词匹配数，则认为登录成功
+        return success_count > failure_count
