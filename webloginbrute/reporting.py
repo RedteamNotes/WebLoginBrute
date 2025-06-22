@@ -163,9 +163,17 @@ class StatsManager:
                     "stats": self.stats,
                     "performance": self.performance,
                 }
-                with open("final_report.json", "w", encoding="utf-8") as f:
+                
+                # 将报告保存到 reports/ 目录中，并使用唯一文件名
+                report_dir = "reports"
+                os.makedirs(report_dir, exist_ok=True)
+                
+                filename = f"final_report_{int(time.time())}.json"
+                filepath = os.path.join(report_dir, filename)
+
+                with open(filepath, "w", encoding="utf-8") as f:
                     json.dump(report, f, ensure_ascii=False, indent=2)
-                print("[+] 已导出 JSON 格式报告: final_report.json")
+                print(f"[+] 已导出 JSON 格式报告: {filepath}")
 
     def update_attempt(self, user: str, password: str = "") -> None:  # nosec B107
         """更新尝试次数和当前凭证"""
@@ -192,19 +200,3 @@ class StatsManager:
         """更新错误次数"""
         with self.lock:
             self.stats["error_count"] += 1
-
-
-class Report:
-    def __init__(self, report_dir: str = "reports"):
-        self.report_dir = report_dir
-        if not os.path.exists(self.report_dir):
-            os.makedirs(self.report_dir)
-
-    def generate_report(self, success_log: list, failure_log: list, stats: dict) -> str:
-        # ... (same as before) ...
-        pass
-
-    def get_report(self) -> Dict[str, Any]:
-        """获取报告数据"""
-        # This is a placeholder
-        return {}
