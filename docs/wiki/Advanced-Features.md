@@ -211,7 +211,7 @@ webloginbrute \
   -U users.txt \
   -P passwords.txt \
   --dry-run \
-  -v
+  -w
 ```
 
 ## 详细日志
@@ -224,7 +224,7 @@ webloginbrute \
   -a https://target.com/login \
   -U users.txt \
   -P passwords.txt \
-  -v  # 详细输出
+  -w  # 详细输出
 ```
 
 ## 安全特性
@@ -261,7 +261,7 @@ webloginbrute \
   -U users.txt \
   -P passwords.txt \
   --dry-run \
-  -v
+  -w
 
 # 第二步：小规模测试
 webloginbrute \
@@ -271,7 +271,7 @@ webloginbrute \
   -P small_passwords.txt \
   -t 5 \
   -A A1 \
-  -v
+  -w
 
 # 第三步：大规模攻击
 webloginbrute \

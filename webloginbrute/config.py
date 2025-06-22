@@ -67,7 +67,7 @@ class Config(BaseModel):
         parser.add_argument('-P', '--passwords', help='密码字典文件')
         parser.add_argument('-s', '--csrf', help='CSRF token字段名')
         parser.add_argument('-f', '--login-field', help='额外的登录字段名')
-        parser.add_argument('-w', '--login-value', help='额外的登录字段值')
+        parser.add_argument('-v', '--login-value', help='额外的登录字段值')
         parser.add_argument('-c', '--cookie', help='Cookie文件路径')
         parser.add_argument('-T', '--timeout', type=int, help='请求超时时间（秒）')
         parser.add_argument('-t', '--threads', type=int, help='并发线程数')
@@ -75,7 +75,7 @@ class Config(BaseModel):
         parser.add_argument('-l', '--log', help='进度文件路径')
         parser.add_argument('-A', '--aggressive', choices=['A0', 'A1', 'A2', 'A3'], help='对抗级别')
         parser.add_argument('--dry-run', action='store_true', help='测试模式，不实际发送请求')
-        parser.add_argument('-v', '--verbose', action='store_true', help='详细输出')
+        parser.add_argument('-w', '--verbose', action='store_true', help='详细输出')
         parser.add_argument('-V', '--version', action='version', version=f'%(prog)s {version}')
         defaults = {opt.dest: opt.default for opt in parser._actions}
         args = parser.parse_args()

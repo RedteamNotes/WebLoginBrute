@@ -94,7 +94,7 @@ webloginbrute \
 | `resume` | `-r`, `--resume` | `boolean` | 从上次中断处恢复爆破。默认为 `false`。 |
 | `log` | `-l`, `--log` | `string` | 指定进度文件的保存路径。 |
 | `dry_run` | `--dry-run` | `boolean` | 测试模式，不实际发送请求。|
-| `verbose` | `-v`, `--verbose` | `boolean` | 启用详细日志输出。 |
+| `verbose` | `-w`, `--verbose` | `boolean` | 启用详细日志输出。 |
 
 ## 参数概览
 
@@ -114,7 +114,7 @@ webloginbrute \
 | `--config` | 无 | YAML配置文件 | 无 | `--config config.yaml` |
 | `--csrf` | `-s` | CSRF token字段名 | 无 | `-s token` |
 | `--login-field` | `-f` | 额外登录字段名 | 无 | `-f domain` |
-| `--login-value` | `-w` | 额外登录字段值 | 无 | `-w example.com` |
+| `--login-value` | `-v` | 额外登录字段值 | 无 | `-v example.com` |
 | `--cookie` | `-c` | Cookie文件 | 无 | `-c cookies.txt` |
 | `--timeout` | `-T` | 请求超时时间（秒） | 30 | `-T 60` |
 | `--threads` | `-t` | 并发线程数 | 5 | `-t 10` |
@@ -122,7 +122,7 @@ webloginbrute \
 | `--log` | `-l` | 进度文件路径 | bruteforce_progress.json | `-l state.json` |
 | `--aggressive` | `-A` | 对抗级别 | A1 | `-A A2` |
 | `--dry-run` | 无 | 测试模式 | False | `--dry-run` |
-| `--verbose` | `-v` | 详细输出 | False | `-v` |
+| `--verbose` | `-w` | 详细输出 | False | `-w` |
 | `--version` | `-V` | 显示版本 | 无 | `-V` |
 | `--help` | `-h` | 显示帮助 | 无 | `-h` |
 
@@ -220,11 +220,11 @@ HTTP请求超时时间（秒）。网络较慢时可适当增加。
 
 ### 输出控制
 
-#### `--verbose` / `-v`
+#### `--verbose` / `-w`
 启用详细输出模式，显示DEBUG级别的日志信息。
 
 ```bash
--v  # 启用详细输出
+-w  # 启用详细输出
 ```
 
 #### `--dry-run` / `--dry-run`
@@ -271,7 +271,7 @@ webloginbrute --config config.yaml
 ## 最佳实践
 
 ### 1. 参数命名
-- 使用短参数进行快速测试：`-u -a -U -P -t 10 -v`
+- 使用短参数进行快速测试：`-u -a -U -P -t 10 -w`
 - 使用长参数提高可读性：`--url --action --users --passwords --threads 10 --verbose`
 
 ### 2. 配置文件
@@ -307,7 +307,7 @@ webloginbrute --config config.yaml
 
 3. **参数冲突**
    ```
-   error: argument -v/--verbose: conflicting option string: -v
+   error: argument -w/--verbose: conflicting option string: -w
    ```
    解决：检查是否有重复的参数定义
 

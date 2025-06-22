@@ -319,7 +319,7 @@ grep -A 10 -B 5 "form" login_page.html
 # 4. 测试登录流程
 curl -X POST "https://target.com/login" \
   -d "username=test&password=test&_token=abc123" \
-  -v
+  -w
 ```
 
 #### 防护检测
