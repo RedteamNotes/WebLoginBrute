@@ -1,6 +1,6 @@
 [project]
 name = "webloginbrute"
-version = "0.27.2"
+# version is now dynamic
 description = "Web登录暴力破解工具"
 authors = [{name = "RedteamNotes"}]
 readme = "README.md"
@@ -31,6 +31,9 @@ dependencies = [
 [project.scripts]
 webloginbrute = "webloginbrute.cli:main"
 
+[project.dynamic]
+version = {path = "webloginbrute/version.py"}
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -47,9 +50,6 @@ line_length = 88
 max-line-length = 88
 extend-ignore = ["E203", "W503"]
 
-# 版本管理配置
+# The incorrect hook is removed, and version management is handled by [project.dynamic]
 [tool.hatch.build.targets.wheel]
-packages = ["webloginbrute"]
-
-[tool.hatch.build.hooks.custom]
-path = "webloginbrute/version.py" 
+packages = ["webloginbrute"] 
