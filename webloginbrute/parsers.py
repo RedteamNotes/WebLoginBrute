@@ -22,7 +22,9 @@ def contains_captcha(html: str, keywords=None) -> bool:
         return True
     try:
         soup = BeautifulSoup(html, "html.parser")
-        if soup.find("input", {"type": "captcha"}) or soup.find("img", {"id": "captcha_image"}):
+        if soup.find("input", {"type": "captcha"}) or soup.find(
+            "img", {"id": "captcha_image"}
+        ):
             return True
     except Exception as e:
         logging.warning(f"解析HTML以检测验证码时失败: {e}")
@@ -112,8 +114,11 @@ def _extract_token_from_html(response_text: str, token_field: str) -> Optional[s
 
 def _extract_token_from_regex(response_text: str, token_field: str) -> Optional[str]:
     import re
+
     try:
-        pattern = rf'name=["\']{re.escape(token_field)}["\'][^>]*value=["\']([^"\']+)["\']'
+        pattern = (
+            rf'name=["\']{re.escape(token_field)}["\'][^>]*value=["\']([^"\']+)["\']'
+        )
         match = re.search(pattern, response_text, re.IGNORECASE)
         if match:
             token = match.group(1)
@@ -124,7 +129,9 @@ def _extract_token_from_regex(response_text: str, token_field: str) -> Optional[
     return None
 
 
-def _extract_token_auto(response_text: str, content_type: str, token_field: str) -> Optional[str]:
+def _extract_token_auto(
+    response_text: str, content_type: str, token_field: str
+) -> Optional[str]:
     if "application/json" in content_type:
         return _extract_token_from_json(response_text, token_field)
     else:

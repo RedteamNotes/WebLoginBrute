@@ -6,72 +6,99 @@ WebLoginBrute 采用了现代化的模块化架构，旨在实现高度的**可�
 
 ```
 WebLoginBrute/
-├── webloginbrute/       # 核心逻辑包
-│   ├── __main__.py      # 包执行入口 (webloginbrute)
-│   ├── cli.py           # 命令行接口与主函数
-│   ├── config.py        # 配置管理 (合并命令行与文件配置)
-│   ├── core.py          # 核心流程调度器 (WebLoginBrute类)
-│   ├── exceptions.py    # 自定义异常
-│   ├── http_client.py   # HTTP客户端 (会话池, 重试, DNS缓存)
-│   ├── logger.py        # 日志系统 (脱敏, 轮转, 审计)
-│   ├── parsers.py       # HTML/JSON解析器
-│   ├── reporting.py     # 统计与报告模块
-│   ├── security.py      # 安全工具 (路径验证等)
-│   ├── state.py         # 状态与进度管理
-│   └── wordlists.py     # 字典加载工具
+├── webloginbrute/         # 核心逻辑包
+│   ├── __main__.py        # 包执行入口 (python -m webloginbrute)
+│   ├── cli.py             # 命令行接口与主函数
+│   ├── config.py          # 配置管理 (Pydantic模型)
+│   ├── core.py            # 核心流程调度器 (WebLoginBrute类)
+│   ├── exceptions.py      # 自定义异常
+│   ├── health_check.py    # 启动前健康检查模块
+│   ├── http_client.py     # HTTP客户端 (会话管理, 重试)
+│   ├── logger.py          # 日志系统 (敏感信息脱敏)
+│   ├── memory_manager.py  # 内存监控与管理
+│   ├── parsers.py         # HTML/JSON解析器
+│   ├── performance_monitor.py # 性能监控
+│   ├── reporting.py       # 统计与报告生成
+│   ├── security.py        # 安全工具 (路径验证, 域名检查)
+│   ├── session_manager.py # 会话池与轮换策略
+│   ├── state.py           # 状态与进度管理
+│   └── wordlists.py       # 字典加载工具
 │
-├── docs/                # 文档
-├── logs/                # 日志输出目录
-├── config.example.yaml  # 配置文件模板
-└── requirements.txt
+├── docs/                  # 文档
+├── tests/                 # 单元测试
+├── config.example.yaml    # 配置文件模板
+└── pyproject.toml         # 项目配置与依赖管理
 ```
 
 ## 核心模块详解
 
 每个模块都承担着独立的职责，通过明确的接口进行协作。
 
-- **`cli.py`**: 程序的入口，负责解析命令行参数、初始化 `Config` 对象、创建 `WebLoginBrute` 核心类的实例，并捕获顶层异常，为用户提供友好的错误提示。
-
-- **`config.py`**: 提供一个 `Config` 类，它能统一管理来自命令行和YAML配置文件的所有参数。它负责合并配置源（命令行优先）、校验必需项、并以类型安全的方式为其他模块提供配置。
-
-- **`core.py`**: 这是整个爆破工具的"大脑"和"指挥官"。`WebLoginBrute` 类在这里定义，它不关心如何发送HTTP请求或如何保存进度，只负责编排整个爆破流程：
-  1. 初始化所有依赖模块。
-  2. 加载字典和恢复进度。
-  3. 创建和管理并发线程池。
-  4. 将爆破任务（用户名/密码组合）分发给工作线程。
-  5. 监控任务状态（成功/失败/中断）。
-  6. 在任务结束时触发最终报告和资源清理。
-
-- **`http_client.py`**: 封装了所有与网络相关的操作。`HttpClient` 类负责管理 `requests.Session` 池、处理DNS缓存以提高性能、实现带指数退避策略的请求重试逻辑，确保网络请求的健壮性。
-
-- **`parsers.py`**: 包含一系列纯函数，用于从HTTP响应的HTML或JSON内容中提取信息，例如提取CSRF Token、检测验证码的存在等。它将核心逻辑与目标网站的具体页面结构解耦。
-
-- **`state.py`**: `StateManager` 类专门负责程序的持久化状态。它高效地管理已尝试的组合（使用 `deque` 和 `set`），并提供线程安全的方法来保存和加载进度到JSON文件。
-
-- **`reporting.py`**: `StatsManager` 类是一个线程安全的统计中心。它负责追踪所有运行时数据（如尝试次数、成功/失败计数、响应时间、内存使用等），并在任务结束时生成详细的格式化报告。
-
-- **`logger.py`**: 提供一个集中的 `setup_logging` 函数，用于配置复杂的日志系统，包括对敏感信息（用户名/密码）的自动脱敏、日志文件的自动轮转（Rotating）、以及独立的常规日志和审计（Audit）日志。
-
-- **`wordlists.py`**: 提供加载字典文件的工具函数，使用Python生成器来逐行读取，有效避免了因加载超大字典而导致的内存耗尽问题。
-
-- **`security.py` / `exceptions.py` / `constants.py`**: 这些是基础工具模块，分别提供安全验证函数、自定义的异常类，以及全局共享的常量（如User-Agent列表）。
+- **`cli.py`**: 程序的入口，负责解析命令行参数、初始化 `Config` 对象，并调用核心流程。
+- **`config.py`**: 使用 Pydantic 定义了一个强类型的 `Config` 模型，能够统一校验和管理来自命令行、YAML 文件及环境变量的配置。
+- **`core.py`**: 项目的"大脑"。`WebLoginBrute` 类在这里定义，负责编排整个爆破流程：初始化依赖模块、管理并发线程池、分发任务、监控状态并触发最终报告。
+- **`health_check.py`**: 在任务开始前执行一系列检查，如网络连通性、文件权限和配置有效性，以确保运行环境的健康。
+- **`http_client.py`**: 封装了 `requests` 库，负责所有网络操作，并与 `SessionManager` 协作获取和管理会话。
+- **`session_manager.py`**: 管理一个 `requests.Session` 池，实现了会话的创建、复用和轮换策略（如基于时间的轮换），以应对目标网站的会话限制。
+- **`memory_manager.py`**: 监控当前进程的内存使用情况。当内存超出预设阈值时，可以触发清理操作或发出警告。
+- **`performance_monitor.py`**: 追踪运行时性能数据，如请求速率（RPS）、成功/失败计数等。
+- **`parsers.py`**: 包含一系列用于从 HTTP 响应中提取信息的纯函数，例如解析 HTML 表单以提取 CSRF Token。
+- **`state.py`**: `StateManager` 负责程序的持久化状态。它高效地管理已尝试的组合，并提供线程安全的方法来保存和加载进度。
+- **`reporting.py`**: 在任务结束时，从其他模块（如 `PerformanceMonitor`）收集统计数据，并生成格式化的总结报告。
+- **`logger.py`**: 提供集中的日志配置，能对日志中的敏感信息（如密码）进行自动脱敏处理。
+- **`wordlists.py`**: 提供加载字典文件的工具函数，使用生成器逐行读取，以高效处理大文件。
+- **`security.py`**: 包含安全相关的验证函数，如路径遍历防护、域名黑白名单检查等。
+- **`exceptions.py` / `constants.py` / `version.py`**: 提供自定义异常类、全局常量和项目版本信息。
 
 ## 数据流与协作方式
 
-![Data Flow Diagram](https://user-images.githubusercontent.com/12345/67890-abc-def.png)  <!-- 占位符，可替换为真实流程图 -->
+```mermaid
+graph TD
+    A[用户] -->|命令行/YAML| B(cli.py);
+    B --> C{config.py};
+    C --> D[WebLoginBrute (core.py)];
 
-1. **启动**: 用户通过`cli.py`启动程序。
-2. **配置**: `cli.py` 创建 `Config` 实例，加载所有配置。
-3. **初始化**: `cli.py` 将 `Config` 对象注入到 `WebLoginBrute` (core) 的构造函数中。
-4. **依赖注入**: `WebLoginBrute` 在初始化时，会创建 `HttpClient`, `StateManager`, `StatsManager` 等所有它需要的服务模块，同样将 `Config` 传递给它们。
-5. **执行**: `run()` 方法被调用，`WebLoginBrute` 开始调度：
-   - 调用 `wordlists` 加载字典。
-   - 调用 `StateManager` 恢复进度。
-   - 在线程池中，每个 `_try_login` 任务会：
-     - 调用 `HttpClient` 发送GET/POST请求。
-     - 调用 `Parsers` 从响应中提取Token。
-     - 调用 `StateManager` 记录已尝试的组合。
-     - 调用 `StatsManager` 更新统计数据。
-6. **结束**: 任务完成或中断后，`WebLoginBrute` 调用 `StatsManager` 打印报告，并调用 `StateManager` 保存最终进度或清理进度文件。
+    subgraph "核心调度器 (core.py)"
+        D -- 初始化 --> E[HealthCheck];
+        D -- 初始化 --> F[HttpClient];
+        D -- 初始化 --> G[StateManager];
+        D -- 初始化 --> H[PerformanceMonitor];
+        D -- 初始化 --> I[SessionManager];
+        D -- 初始化 --> J[MemoryManager];
+    end
 
-这种架构使得代码清晰、健壮，并且极易于未来的功能扩展和维护。 
+    subgraph "执行循环 (多线程)"
+        K(WorkerThread) -->|获取会话| I;
+        K -->|发送请求| F;
+        F -->|HTTP/S| L[目标网站];
+        L -->|响应| F;
+        F -->|解析| M(parsers.py);
+        M -->|CSRF Token| K;
+        K -->|更新状态| G;
+        K -->|更新性能| H;
+    end
+
+    D -->|启动/调度| K;
+    D -->|结束时生成报告| N(reporting.py);
+    H -->|提供数据| N;
+
+    style A fill:#cde4ff
+    style B fill:#cde4ff
+    style C fill:#cde4ff
+    style D fill:#cde4ff
+    style L fill:#ffcdd2
+```
+
+1.  **启动与配置**: 用户通过 `cli.py` 启动程序，`config.py` 加载并验证所有配置，创建一个 `Config` 实例。
+2.  **初始化**: `cli.py` 将 `Config` 对象注入到 `WebLoginBrute` (core) 实例中。`core` 则利用该配置初始化所有需要的服务模块（如 `HttpClient`, `StateManager`, `SessionManager` 等），实现了依赖注入。
+3.  **健康检查**: 在启动爆破流程前，`HealthCheck` 模块会验证环境的有效性。
+4.  **执行**: `core` 启动线程池，每个工作线程执行爆破任务：
+    -   通过 `SessionManager` 获取一个可用的 HTTP 会话。
+    -   使用 `HttpClient` 发送登录请求。
+    -   如果需要，调用 `parsers` 从响应中提取新 Token。
+    -   调用 `StateManager` 记录已尝试的组合。
+    -   调用 `PerformanceMonitor` 更新实时统计。
+5.  **监控**: `MemoryManager` 在后台独立监控内存使用情况。
+6.  **结束**: 任务完成或中断后，`core` 调用 `reporting.py` 收集所有统计数据并向用户展示最终报告。
+
+这种清晰的模块化设计使得代码易于理解、维护和扩展。 

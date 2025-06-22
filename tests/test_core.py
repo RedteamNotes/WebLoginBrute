@@ -35,7 +35,7 @@ class TestWebLoginBrute(unittest.TestCase):
             csrf="csrf_token",
             login_field="remember_me",
             login_value="1",
-            cookie="cookies.txt",
+            cookie=None,
             timeout=30,
             threads=5,
             resume=False,
@@ -58,18 +58,19 @@ class TestWebLoginBrute(unittest.TestCase):
             max_file_size=100,
             security_level="standard",
             allowed_domains=["example.com"],
-            blocked_domains=["malicious.com"]
+            blocked_domains=["malicious.com"],
         )
 
     def tearDown(self):
         """清理测试环境"""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
     def test_initialization(self, mock_stats, mock_state, mock_http, mock_logging):
         """测试初始化"""
         brute = WebLoginBrute(self.config)
@@ -79,10 +80,10 @@ class TestWebLoginBrute(unittest.TestCase):
         self.assertIsNone(brute.executor)
         self.assertFalse(brute._shutdown_requested)
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
     def test_signal_handler(self, mock_stats, mock_state, mock_http, mock_logging):
         """测试信号处理"""
         brute = WebLoginBrute(self.config)
@@ -93,12 +94,14 @@ class TestWebLoginBrute(unittest.TestCase):
         self.assertTrue(brute._shutdown_requested)
         self.assertTrue(brute.success.is_set())
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
-    @patch('webloginbrute.core.load_wordlist')
-    def test_load_wordlists(self, mock_load_wordlist, mock_stats, mock_state, mock_http, mock_logging):
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
+    @patch("webloginbrute.core.load_wordlist")
+    def test_load_wordlists(
+        self, mock_load_wordlist, mock_stats, mock_state, mock_http, mock_logging
+    ):
         """测试字典加载"""
         mock_load_wordlist.return_value = ["admin", "user"]
 
@@ -113,12 +116,14 @@ class TestWebLoginBrute(unittest.TestCase):
         self.assertEqual(brute.usernames, ["admin", "user"])
         self.assertEqual(brute.passwords, ["admin", "user"])
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
-    @patch('webloginbrute.core.ThreadPoolExecutor')
-    def test_setup_executor(self, mock_executor, mock_stats, mock_state, mock_http, mock_logging):
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
+    @patch("webloginbrute.core.ThreadPoolExecutor")
+    def test_setup_executor(
+        self, mock_executor, mock_stats, mock_state, mock_http, mock_logging
+    ):
         """测试线程池设置"""
         mock_executor_instance = Mock()
         mock_executor.return_value = mock_executor_instance
@@ -129,42 +134,56 @@ class TestWebLoginBrute(unittest.TestCase):
         self.assertEqual(brute.executor, mock_executor_instance)
         self.assertIsNotNone(brute.stats.stats["start_time"])
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
     def test_build_login_data(self, mock_stats, mock_state, mock_http, mock_logging):
         """测试登录数据构建"""
         brute = WebLoginBrute(self.config)
 
-        # 测试基本数据构建
+        # 测试基本数据构建（包含配置中的login_field）
         data = brute._build_login_data("admin", "password", None)
-        self.assertEqual(data, {"username": "admin", "password": "password"})
+        self.assertEqual(
+            data,
+            {
+                "username": "admin",
+                "password": "password",
+                "remember_me": "1",  # 配置中设置的login_field和login_value
+            },
+        )
 
         # 测试带CSRF token的数据构建
         self.config.csrf = "csrf_token"
         data = brute._build_login_data("admin", "password", "abc123")
-        self.assertEqual(data, {
-            "username": "admin",
-            "password": "password",
-            "csrf_token": "abc123"
-        })
+        self.assertEqual(
+            data,
+            {
+                "username": "admin",
+                "password": "password",
+                "csrf_token": "abc123",
+                "remember_me": "1",  # 配置中设置的login_field和login_value
+            },
+        )
 
         # 测试带额外字段的数据构建
         self.config.login_field = "domain"
         self.config.login_value = "example.com"
         data = brute._build_login_data("admin", "password", "abc123")
-        self.assertEqual(data, {
-            "username": "admin",
-            "password": "password",
-            "csrf_token": "abc123",
-            "domain": "example.com"
-        })
+        self.assertEqual(
+            data,
+            {
+                "username": "admin",
+                "password": "password",
+                "csrf_token": "abc123",
+                "domain": "example.com",  # 新的login_field和login_value
+            },
+        )
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
     def test_check_login_success(self, mock_stats, mock_state, mock_http, mock_logging):
         """测试登录成功判断"""
         brute = WebLoginBrute(self.config)
@@ -182,16 +201,18 @@ class TestWebLoginBrute(unittest.TestCase):
         # 测试自定义关键词
         custom_response = Mock()
         custom_response.text = "Login successful"
-        self.assertTrue(brute._check_login_success(
-            custom_response,
-            success_keywords=["successful"],
-            failure_keywords=["invalid"]
-        ))
+        self.assertTrue(
+            brute._check_login_success(
+                custom_response,
+                success_keywords=["successful"],
+                failure_keywords=["invalid"],
+            )
+        )
 
-    @patch('webloginbrute.core.setup_logging')
-    @patch('webloginbrute.core.HttpClient')
-    @patch('webloginbrute.core.StateManager')
-    @patch('webloginbrute.core.StatsManager')
+    @patch("webloginbrute.core.setup_logging")
+    @patch("webloginbrute.core.HttpClient")
+    @patch("webloginbrute.core.StateManager")
+    @patch("webloginbrute.core.StatsManager")
     def test_cleanup_resources(self, mock_stats, mock_state, mock_http, mock_logging):
         """测试资源清理"""
         mock_executor = Mock()
@@ -226,5 +247,5 @@ class TestWebLoginBrute(unittest.TestCase):
         mock_http_instance.close_all_sessions.assert_called_once()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

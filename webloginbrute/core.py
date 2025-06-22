@@ -35,21 +35,21 @@ class WebLoginBrute:
 
         # 初始化内存管理器
         memory_config = MemoryConfig(
-            max_memory_mb=getattr(config, 'max_memory_mb', 500),
-            warning_threshold=getattr(config, 'memory_warning_threshold', 0.8),
-            critical_threshold=getattr(config, 'memory_critical_threshold', 0.9),
-            cleanup_interval=getattr(config, 'memory_cleanup_interval', 60)
+            max_memory_mb=getattr(config, "max_memory_mb", 500),
+            warning_threshold=getattr(config, "memory_warning_threshold", 0.8),
+            critical_threshold=getattr(config, "memory_critical_threshold", 0.9),
+            cleanup_interval=getattr(config, "memory_cleanup_interval", 60),
         )
         self.memory_manager = get_memory_manager()
         self.memory_manager.config = memory_config
 
         # 初始化会话轮换器
         session_config = SessionConfig(
-            rotation_interval=getattr(config, 'session_rotation_interval', 300),
-            session_lifetime=getattr(config, 'session_lifetime', 600),
-            max_session_pool_size=getattr(config, 'max_session_pool_size', 100),
-            enable_rotation=getattr(config, 'enable_session_rotation', True),
-            rotation_strategy=getattr(config, 'rotation_strategy', 'time')
+            rotation_interval=getattr(config, "session_rotation_interval", 300),
+            session_lifetime=getattr(config, "session_lifetime", 600),
+            max_session_pool_size=getattr(config, "max_session_pool_size", 100),
+            enable_rotation=getattr(config, "enable_session_rotation", True),
+            rotation_strategy=getattr(config, "rotation_strategy", "time"),
         )
         self.session_rotator = get_session_rotator()
         self.session_rotator.config = session_config
@@ -89,7 +89,7 @@ class WebLoginBrute:
 
     def _on_memory_cleanup(self, cleanup_type: str):
         """内存清理回调"""
-        if cleanup_type == 'emergency':
+        if cleanup_type == "emergency":
             logging.warning("执行紧急内存清理，暂停任务执行")
             # 暂停任务执行
             if self.executor:
@@ -102,44 +102,54 @@ class WebLoginBrute:
         """注册健康检查回调函数"""
         # 内存使用回调
         self.health_checker.register_check_callback(
-            'memory_usage', self._on_memory_health_check)
+            "memory_usage", self._on_memory_health_check
+        )
 
         # 系统资源回调
         self.health_checker.register_check_callback(
-            'system_resources', self._on_system_health_check)
+            "system_resources", self._on_system_health_check
+        )
 
         # 网络性能回调
         self.health_checker.register_check_callback(
-            'network_performance', self._on_network_health_check)
+            "network_performance", self._on_network_health_check
+        )
 
     def _on_memory_health_check(self, result):
         """内存健康检查回调"""
-        if result.status == 'FAIL':
+        if result.status == "FAIL":
             logging.critical(f"内存健康检查失败: {result.message}")
             # 触发紧急内存清理
             self.memory_manager._emergency_cleanup()
-        elif result.status == 'WARNING':
+        elif result.status == "WARNING":
             logging.warning(f"内存健康检查警告: {result.message}")
 
     def _on_system_health_check(self, result):
         """系统资源健康检查回调"""
-        if result.status == 'FAIL':
+        if result.status == "FAIL":
             logging.critical(f"系统资源健康检查失败: {result.message}")
             # 可以考虑降低并发数或暂停任务
-        elif result.status == 'WARNING':
+        elif result.status == "WARNING":
             logging.warning(f"系统资源健康检查警告: {result.message}")
 
     def _on_network_health_check(self, result):
         """网络性能健康检查回调"""
-        if result.status == 'FAIL':
+        if result.status == "FAIL":
             logging.critical(f"网络性能健康检查失败: {result.message}")
             # 可以考虑增加重试次数或降低请求频率
-        elif result.status == 'WARNING':
+        elif result.status == "WARNING":
             logging.warning(f"网络性能健康检查警告: {result.message}")
 
     def run(self) -> None:
         """主运行方法"""
-        if not all([self.config.url, self.config.action, self.config.users, self.config.passwords]):
+        if not all(
+            [
+                self.config.url,
+                self.config.action,
+                self.config.users,
+                self.config.passwords,
+            ]
+        ):
             raise ValueError("核心配置参数不能为空")
         logging.info("开始WebLoginBrute主流程...")
 
@@ -173,17 +183,17 @@ class WebLoginBrute:
             results = run_health_checks(self.config)
 
             # 分析检查结果
-            fail_count = sum(1 for r in results if r.status == 'FAIL')
-            warning_count = sum(1 for r in results if r.status == 'WARNING')
+            fail_count = sum(1 for r in results if r.status == "FAIL")
+            warning_count = sum(1 for r in results if r.status == "WARNING")
 
             if fail_count > 0:
                 logging.error(f"初始健康检查发现 {fail_count} 个失败项")
                 for result in results:
-                    if result.status == 'FAIL':
+                    if result.status == "FAIL":
                         logging.error(f"  - {result.check_name}: {result.message}")
 
                 # 根据配置决定是否继续
-                if self.config.security_level in ['high', 'paranoid']:
+                if self.config.security_level in ["high", "paranoid"]:
                     raise HealthCheckError("初始健康检查失败，安全级别要求停止执行")
                 else:
                     logging.warning("健康检查失败，但将继续执行（安全级别允许）")
@@ -191,7 +201,7 @@ class WebLoginBrute:
             if warning_count > 0:
                 logging.warning(f"初始健康检查发现 {warning_count} 个警告项")
                 for result in results:
-                    if result.status == 'WARNING':
+                    if result.status == "WARNING":
                         logging.warning(f"  - {result.check_name}: {result.message}")
 
             if fail_count == 0 and warning_count == 0:
@@ -202,7 +212,7 @@ class WebLoginBrute:
 
         except Exception as e:
             logging.error(f"初始健康检查执行失败: {e}")
-            if self.config.security_level == 'paranoid':
+            if self.config.security_level == "paranoid":
                 raise HealthCheckError(f"偏执模式下健康检查失败: {e}")
 
     def _print_health_check_summary(self, results):
@@ -222,15 +232,19 @@ class WebLoginBrute:
             status_groups[result.status].append(result)
 
         # 打印各状态的结果
-        for status in ['PASS', 'WARNING', 'FAIL']:
+        for status in ["PASS", "WARNING", "FAIL"]:
             if status in status_groups:
                 print(f"\n{status} 状态 ({len(status_groups[status])} 项):")
                 for result in status_groups[status]:
-                    icon = "✅" if status == 'PASS' else "⚠️" if status == 'WARNING' else "❌"
+                    icon = (
+                        "✅"
+                        if status == "PASS"
+                        else "⚠️" if status == "WARNING" else "❌"
+                    )
                     print(f"  {icon} {result.check_name}: {result.message}")
                     if result.details:
                         for key, value in result.details.items():
-                            if key != 'error':
+                            if key != "error":
                                 print(f"      {key}: {value}")
 
         print("=" * 60)
@@ -251,7 +265,8 @@ class WebLoginBrute:
                 self.passwords = list(load_wordlist(self.config.passwords, self.config))
 
             logging.info(
-                f"字典加载完成: {len(self.usernames)} 个用户名, {len(self.passwords)} 个密码")
+                f"字典加载完成: {len(self.usernames)} 个用户名, {len(self.passwords)} 个密码"
+            )
 
             # 恢复进度
             loaded_attempts, stats_from_file = self.state.load_progress()
@@ -261,13 +276,20 @@ class WebLoginBrute:
             # 过滤已尝试的组合
             if loaded_attempts:
                 original_count = len(self.usernames) * len(self.passwords)
-                self.usernames = [u for u in self.usernames if any(
-                    (u, p) not in loaded_attempts for p in self.passwords)]
-                self.passwords = [p for p in self.passwords if any(
-                    (u, p) not in loaded_attempts for u in self.usernames)]
+                self.usernames = [
+                    u
+                    for u in self.usernames
+                    if any((u, p) not in loaded_attempts for p in self.passwords)
+                ]
+                self.passwords = [
+                    p
+                    for p in self.passwords
+                    if any((u, p) not in loaded_attempts for u in self.usernames)
+                ]
                 remaining_count = len(self.usernames) * len(self.passwords)
                 logging.info(
-                    f"进度恢复完成: 已尝试 {original_count - remaining_count} 个组合，剩余 {remaining_count} 个")
+                    f"进度恢复完成: 已尝试 {original_count - remaining_count} 个组合，剩余 {remaining_count} 个"
+                )
 
         except Exception as e:
             logging.error(f"字典加载失败: {e}")
@@ -297,6 +319,7 @@ class WebLoginBrute:
 
         # 强制垃圾回收
         import gc
+
         gc.collect()
 
         # 保存进度
@@ -370,11 +393,13 @@ class WebLoginBrute:
             results = run_health_checks(self.config)
 
             # 分析最终结果
-            fail_count = sum(1 for r in results if r.status == 'FAIL')
-            warning_count = sum(1 for r in results if r.status == 'WARNING')
+            fail_count = sum(1 for r in results if r.status == "FAIL")
+            warning_count = sum(1 for r in results if r.status == "WARNING")
 
             if fail_count > 0 or warning_count > 0:
-                logging.warning(f"最终健康检查: {fail_count} 个失败项, {warning_count} 个警告项")
+                logging.warning(
+                    f"最终健康检查: {fail_count} 个失败项, {warning_count} 个警告项"
+                )
 
                 # 导出最终报告
                 report_path = f"final_health_check_report_{int(time.time())}.json"
@@ -403,7 +428,8 @@ class WebLoginBrute:
             logging.info(f"  总请求数: {session_stats['total_requests']}")
             logging.info(f"  平均错误率: {session_stats['avg_error_rate']:.2%}")
             logging.info(
-                f"  会话轮换: {session_stats['rotation_stats']['total_rotations']}")
+                f"  会话轮换: {session_stats['rotation_stats']['total_rotations']}"
+            )
 
             # 健康检查统计
             health_summary = self.health_checker.get_summary()
@@ -437,7 +463,8 @@ class WebLoginBrute:
                     # 提交任务
                     if self.executor:
                         future = self.executor.submit(
-                            self._try_login, username, password)
+                            self._try_login, username, password
+                        )
                         futures.append(future)
 
                     # 定期健康检查
@@ -470,8 +497,8 @@ class WebLoginBrute:
             results = run_health_checks(self.config)
 
             # 只记录失败和警告
-            fail_results = [r for r in results if r.status == 'FAIL']
-            warning_results = [r for r in results if r.status == 'WARNING']
+            fail_results = [r for r in results if r.status == "FAIL"]
+            warning_results = [r for r in results if r.status == "WARNING"]
 
             if fail_results:
                 logging.warning(f"定期健康检查发现 {len(fail_results)} 个失败项")
@@ -520,13 +547,18 @@ class WebLoginBrute:
     def _extract_token(self, resp, username, password):
         token = None
         if self.config.csrf:
-            token = extract_token(resp.text, resp.headers.get(
-                "Content-Type", ""), self.config.csrf)
+            token = extract_token(
+                resp.text, resp.headers.get("Content-Type", ""), self.config.csrf
+            )
             if not token:
-                logging.warning(f"未能为 {username}:{password} 提取Token（如目标无CSRF token可忽略）")
+                logging.warning(
+                    f"未能为 {username}:{password} 提取Token（如目标无CSRF token可忽略）"
+                )
         return token
 
-    def _build_login_data(self, username: str, password: str, token: Optional[str] = None) -> dict:
+    def _build_login_data(
+        self, username: str, password: str, token: Optional[str] = None
+    ) -> dict:
         data = {"username": username, "password": password}
         if token and self.config.csrf:
             data[self.config.csrf] = token
@@ -561,26 +593,42 @@ class WebLoginBrute:
 
         return False
 
-    def _check_login_success(self, response, success_keywords=None, failure_keywords=None) -> bool:
+    def _check_login_success(
+        self, response, success_keywords=None, failure_keywords=None
+    ) -> bool:
         """检查登录是否成功"""
-        if not response or not hasattr(response, 'text'):
+        if not response or not hasattr(response, "text"):
             return False
 
         # 默认成功/失败关键词
         if success_keywords is None:
-            success_keywords = ['welcome', 'dashboard',
-                                'logout', 'profile', 'success', '登录成功']
+            success_keywords = [
+                "welcome",
+                "dashboard",
+                "logout",
+                "profile",
+                "success",
+                "登录成功",
+            ]
         if failure_keywords is None:
-            failure_keywords = ['invalid', 'incorrect',
-                                'failed', 'error', 'login', '登录失败']
+            failure_keywords = [
+                "invalid",
+                "incorrect",
+                "failed",
+                "error",
+                "login",
+                "登录失败",
+            ]
 
         response_lower = response.text.lower()
 
         # 计算成功和失败关键词的匹配数
         success_count = sum(
-            1 for keyword in success_keywords if keyword.lower() in response_lower)
+            1 for keyword in success_keywords if keyword.lower() in response_lower
+        )
         failure_count = sum(
-            1 for keyword in failure_keywords if keyword.lower() in response_lower)
+            1 for keyword in failure_keywords if keyword.lower() in response_lower
+        )
 
         # 如果成功关键词匹配数大于失败关键词匹配数，则认为登录成功
         return success_count > failure_count

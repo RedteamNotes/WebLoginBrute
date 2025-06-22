@@ -5,6 +5,7 @@ import logging
 import time
 from threading import Lock
 from typing import Any, Dict
+import os
 
 try:
     import psutil
@@ -12,6 +13,10 @@ try:
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
+
+from webloginbrute.logger import setup_logging
+
+log = setup_logging()
 
 
 class StatsManager:
@@ -37,7 +42,7 @@ class StatsManager:
             "current_user": "",
             "current_password": "",
             "last_success_time": None,
-            "last_failure_time": None
+            "last_failure_time": None,
         }
 
         self.performance: Dict[str, Any] = {
@@ -123,9 +128,7 @@ class StatsManager:
             duration = self.stats["end_time"] - self.stats["start_time"]
 
             # 避免除以零
-            avg_rate = (
-                self.stats["total_attempts"] / duration if duration > 0 else 0
-            )
+            avg_rate = self.stats["total_attempts"] / duration if duration > 0 else 0
 
             print("\n" + "=" * 50)
             print("                暴力破解任务完成")
@@ -153,13 +156,14 @@ class StatsManager:
             print("=" * 50)
             if export_json:
                 import json
+
                 report = {
-                    'duration': duration,
-                    'avg_rate': avg_rate,
-                    'stats': self.stats,
-                    'performance': self.performance,
+                    "duration": duration,
+                    "avg_rate": avg_rate,
+                    "stats": self.stats,
+                    "performance": self.performance,
                 }
-                with open('final_report.json', 'w', encoding='utf-8') as f:
+                with open("final_report.json", "w", encoding="utf-8") as f:
                     json.dump(report, f, ensure_ascii=False, indent=2)
                 print("[+] 已导出 JSON 格式报告: final_report.json")
 
@@ -188,3 +192,19 @@ class StatsManager:
         """更新错误次数"""
         with self.lock:
             self.stats["error_count"] += 1
+
+
+class Report:
+    def __init__(self, report_dir: str = "reports"):
+        self.report_dir = report_dir
+        if not os.path.exists(self.report_dir):
+            os.makedirs(self.report_dir)
+
+    def generate_report(self, success_log: list, failure_log: list, stats: dict) -> str:
+        # ... (same as before) ...
+        pass
+
+    def get_report(self) -> Dict[str, Any]:
+        """获取报告数据"""
+        # This is a placeholder
+        return {}

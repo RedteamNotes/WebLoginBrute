@@ -1,52 +1,83 @@
-# 常见问题
+# 常见问题 (FAQ)
 
 **版本：0.27.1**
 
-本文档收集了 WebLoginBrute 用户常见的问题和解答。
+本文档收集了 WebLoginBrute 用户的常见问题和解答。
 
-## 安装和配置
+## 安装与配置
 
 ### Q: 如何安装 WebLoginBrute？
+**A:** 本项目目前未发布到 PyPI。请从源码安装：
+1.  克隆项目仓库：
+    ```bash
+    git clone https://github.com/RedteamNotes/WebLoginBrute.git
+    cd WebLoginBrute
+    ```
+2.  (推荐) 创建并激活 Python 虚拟环境。
+3.  在项目根目录运行安装命令，它会自动处理所有依赖：
+    ```bash
+    pip install .
+    ```
 
-A: 安装步骤如下：
+### Q: 提示 "模块未找到" (ModuleNotFoundError) 怎么办？
+**A:** 这通常意味着依赖没有被正确安装，或者你没有在正确的虚拟环境中运行程序。请确保你已经激活了虚拟环境，并重新运行 `pip install .`。所有依赖都定义在 `pyproject.toml` 中。
 
-你可以通过 `pip` 或从源码安装：
-
-**使用 Pip:**
+### Q: 如何检查我安装的版本号？
+**A:** 使用 `-V` 或 `--version` 参数：
 ```bash
-pip install webloginbrute
+webloginbrute --version
 ```
 
-**从源码安装:**
+## 使用问题
+
+### Q: 启动时需要哪些最基本的参数？
+**A:** 理论上只需要两个：`--url` (或 `-u`) 和用户/密码字典之一。
+-   `--url <URL>`: 目标登录页。
+-   `--users <FILE>`: 用户名字典路径。
+-   `--passwords <FILE>`: 密码字典路径。
+
+通常，你需要同时提供用户和密码字典。
+
+### Q: 如何找到目标网站的 CSRF token 字段名？
+**A:** 在浏览器中打开登录页面，使用开发者工具 (F12) 检查 (Inspect) 登录表单的 HTML 源码。找到一个类型为 `hidden` 的 `<input>` 标签，其 `name` 属性值很可能就是 CSRF token 的字段名，例如 `_csrf`, `csrf_token` 等。然后通过 `--csrf <name>` 参数提供给程序。
+
+### Q: 程序运行很慢，如何提速？
+**A:** 速度慢可能是策略需要，也可能是配置问题。
+1.  **检查对抗级别**: 确保 `--aggressive` 的值不是 `2` 或 `3`。级别越高，速度越慢。对于测试环境，可使用 `--aggressive 0`。
+2.  **增加线程数**: 如果目标服务器和你的网络允许，可以适当增加 `--threads` (或 `-t`) 的值，例如 `-t 20`。
+3.  **检查网络**: 确保你的网络连接到目标是稳定的。
+
+### Q: 为什么所有尝试都失败了？
+**A:** 可能的原因有很多：
+1.  **URL 和 Action 不匹配**: 确保 `--url` 是登录页面，`--action` (如果提供) 是表单提交的正确地址。如果不确定，通常可以省略 `--action`，程序会使用 `--url` 作为提交地址。
+2.  **CSRF Token**: 目标网站可能需要 CSRF token，请使用 `--csrf` 参数提供。
+3.  **额外表单字段**: 某些登录表单除了用户名和密码外，还有其他隐藏字段。请使用 `--login-field` 和 `--login-value` 添加。
+4.  **WAF/IP 封禁**: 你的请求可能被防火墙阻止了。尝试提高对抗级别 (`--aggressive 2` 或 `3`)，减少线程数 (`-t 3`)，或者更换网络环境（如使用代理）。
+5.  **字典问题**: 确认你的字典里真的有正确的凭证。
+
+## 功能特性
+
+### Q: 如何启用断点续扫？
+**A:** 使用 `-r` 或 `--resume` 参数。程序会读取进度文件（默认为 `bruteforce_progress.json`）并跳过已尝试的组合。
 ```bash
-git clone https://github.com/RedteamNotes/WebLoginBrute.git
-cd WebLoginBrute
-pip install -e .
+webloginbrute --config config.yaml --resume
 ```
 
-### Q: 提示 "pydantic 模块未找到" 怎么办？
-
-A: 这是依赖包缺失的问题，请执行：
-
+### Q: 我可以把进度文件移到别处吗？
+**A:** 可以。使用 `-l` 或 `--log` 参数指定你想要的路径和文件名。
 ```bash
-pip install pydantic
+webloginbrute --config config.yaml --log /path/to/my_progress.json
 ```
 
-或者重新安装所有依赖：
+### Q: 对抗级别 (`aggressive`) 到底有什么用？
+**A:** 它的唯一作用是在每次登录请求之间加入一段随机延迟。级别越高，延迟越长，请求速度越慢，但越不容易被目标的安全策略发现。
+-   `0`: 无延迟。
+-   `1`: 短延迟 (默认)。
+-   `2`: 中等延迟。
+-   `3`: 长延迟。
 
-```bash
-pip install -r requirements.txt
-```
-
-### Q: 如何检查版本号？
-
-A: 使用以下命令：
-
-```bash
-webloginbrute -V
-```
-
-应该显示：`webloginbrute 0.27.1`
+### Q: 为什么要有会话管理 (`session_*`) 功能？
+**A:** 某些网站会限制单个会话的登录尝试次数。会话管理通过创建和轮换多个会话 (`requests.Session`)，可以有效绕过这种限制，使爆破能持续进行。对于不需要此功能的简单目标，可以通过 `--disable-session-rotation` 关闭。
 
 ## 参数和配置
 

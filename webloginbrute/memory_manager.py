@@ -15,6 +15,7 @@ from contextlib import contextmanager
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -24,6 +25,7 @@ except ImportError:
 @dataclass
 class MemoryConfig:
     """内存配置"""
+
     max_memory_mb: int = 500  # 最大内存使用量(MB)
     warning_threshold: float = 0.8  # 警告阈值(80%)
     critical_threshold: float = 0.9  # 临界阈值(90%)
@@ -45,12 +47,12 @@ class MemoryManager:
 
         # 内存使用统计
         self.stats = {
-            'peak_memory': 0,
-            'cleanup_count': 0,
-            'gc_count': 0,
-            'warning_count': 0,
-            'critical_count': 0,
-            'last_check': time.time()
+            "peak_memory": 0,
+            "cleanup_count": 0,
+            "gc_count": 0,
+            "warning_count": 0,
+            "critical_count": 0,
+            "last_check": time.time(),
         }
 
         if not PSUTIL_AVAILABLE:
@@ -90,17 +92,16 @@ class MemoryManager:
                 return
 
             with self.lock:
-                self.stats['last_check'] = time.time()
+                self.stats["last_check"] = time.time()
 
                 # 更新峰值内存
-                if current_memory > self.stats['peak_memory']:
-                    self.stats['peak_memory'] = current_memory
+                if current_memory > self.stats["peak_memory"]:
+                    self.stats["peak_memory"] = current_memory
 
                 # 记录内存历史
-                self._memory_history.append({
-                    'timestamp': time.time(),
-                    'memory_mb': current_memory
-                })
+                self._memory_history.append(
+                    {"timestamp": time.time(), "memory_mb": current_memory}
+                )
 
                 # 保持历史记录在合理范围内
                 if len(self._memory_history) > 100:
@@ -110,14 +111,16 @@ class MemoryManager:
                 memory_ratio = current_memory / self.config.max_memory_mb
 
                 if memory_ratio >= self.config.critical_threshold:
-                    self.stats['critical_count'] += 1
+                    self.stats["critical_count"] += 1
                     logging.critical(
-                        f"内存使用达到临界值: {current_memory:.1f}MB ({memory_ratio:.1%})")
+                        f"内存使用达到临界值: {current_memory:.1f}MB ({memory_ratio:.1%})"
+                    )
                     self._emergency_cleanup()
                 elif memory_ratio >= self.config.warning_threshold:
-                    self.stats['warning_count'] += 1
+                    self.stats["warning_count"] += 1
                     logging.warning(
-                        f"内存使用较高: {current_memory:.1f}MB ({memory_ratio:.1%})")
+                        f"内存使用较高: {current_memory:.1f}MB ({memory_ratio:.1%})"
+                    )
                     self._normal_cleanup()
                 elif current_memory > self.config.gc_threshold:
                     # 定期垃圾回收
@@ -145,12 +148,12 @@ class MemoryManager:
     def _normal_cleanup(self):
         """正常清理"""
         with self.lock:
-            self.stats['cleanup_count'] += 1
+            self.stats["cleanup_count"] += 1
 
         # 执行清理回调
         for callback in self._cleanup_callbacks:
             try:
-                callback('normal')
+                callback("normal")
             except Exception as e:
                 logging.error(f"执行清理回调失败: {e}")
 
@@ -162,12 +165,12 @@ class MemoryManager:
     def _emergency_cleanup(self):
         """紧急清理"""
         with self.lock:
-            self.stats['cleanup_count'] += 1
+            self.stats["cleanup_count"] += 1
 
         # 执行紧急清理回调
         for callback in self._cleanup_callbacks:
             try:
-                callback('emergency')
+                callback("emergency")
             except Exception as e:
                 logging.error(f"执行紧急清理回调失败: {e}")
 
@@ -182,7 +185,7 @@ class MemoryManager:
     def _garbage_collection(self):
         """垃圾回收"""
         with self.lock:
-            self.stats['gc_count'] += 1
+            self.stats["gc_count"] += 1
 
         # 强制垃圾回收
         collected = gc.collect()
@@ -203,10 +206,11 @@ class MemoryManager:
 
         with self.lock:
             stats = self.stats.copy()
-            stats['current_memory'] = current_memory
-            stats['memory_ratio'] = current_memory / \
-                self.config.max_memory_mb if current_memory else 0
-            stats['history_count'] = len(self._memory_history)
+            stats["current_memory"] = current_memory
+            stats["memory_ratio"] = (
+                current_memory / self.config.max_memory_mb if current_memory else 0
+            )
+            stats["history_count"] = len(self._memory_history)
 
         return stats
 
@@ -225,7 +229,9 @@ class MemoryManager:
         current_memory = self.get_current_memory()
         if current_memory is not None and not self.check_memory_limit(required_mb):
             available_memory = self.config.max_memory_mb - current_memory
-            raise MemoryError(f"内存不足，需要{required_mb}MB，当前可用{available_memory:.1f}MB")
+            raise MemoryError(
+                f"内存不足，需要{required_mb}MB，当前可用{available_memory:.1f}MB"
+            )
 
         try:
             yield

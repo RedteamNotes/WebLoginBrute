@@ -27,16 +27,30 @@ dependencies = [
     "psutil>=5.9.0",
     "chardet>=5.0.0",
 ]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+linting = [
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+]
+testing = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+]
 
 [project.scripts]
 webloginbrute = "webloginbrute.cli:main"
 
-[project.dynamic]
-version = {path = "webloginbrute/version.py"}
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "webloginbrute/version.py"
 
 [tool.black]
 line-length = 88

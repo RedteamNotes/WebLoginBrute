@@ -31,8 +31,8 @@ class HttpClient:
         self._dns_cache_lock = Lock()
 
         # 重试配置
-        self.max_retries = getattr(config, 'max_retries', 3)
-        self.base_delay = getattr(config, 'base_delay', 1.0)
+        self.max_retries = getattr(config, "max_retries", 3)
+        self.base_delay = getattr(config, "base_delay", 1.0)
 
         # 获取会话轮换器和内存管理器
         self.session_rotator = get_session_rotator()
@@ -40,23 +40,29 @@ class HttpClient:
 
         # 会话配置
         session_config = SessionConfig(
-            rotation_interval=getattr(config, 'session_rotation_interval', 300),
-            session_lifetime=getattr(config, 'session_lifetime', 600),
-            max_session_pool_size=getattr(config, 'max_session_pool_size', 100),
-            enable_rotation=getattr(config, 'enable_session_rotation', True),
-            rotation_strategy=getattr(config, 'rotation_strategy', 'time')
+            rotation_interval=getattr(config, "session_rotation_interval", 300),
+            session_lifetime=getattr(config, "session_lifetime", 600),
+            max_session_pool_size=getattr(config, "max_session_pool_size", 100),
+            enable_rotation=getattr(config, "enable_session_rotation", True),
+            rotation_strategy=getattr(config, "rotation_strategy", "time"),
         )
 
         # 初始化会话轮换器
         self.session_rotator.config = session_config
 
-    def get(self, url: str, headers: Optional[Dict] = None, **kwargs) -> requests.Response:
+    def get(
+        self, url: str, headers: Optional[Dict] = None, **kwargs
+    ) -> requests.Response:
         """执行带重试的GET请求"""
-        return self._make_request_with_retry('GET', url, headers=headers, **kwargs)
+        return self._make_request_with_retry("GET", url, headers=headers, **kwargs)
 
-    def post(self, url: str, data: Dict, headers: Optional[Dict] = None, **kwargs) -> requests.Response:
+    def post(
+        self, url: str, data: Dict, headers: Optional[Dict] = None, **kwargs
+    ) -> requests.Response:
         """执行带重试的POST请求"""
-        return self._make_request_with_retry('POST', url, data=data, headers=headers, **kwargs)
+        return self._make_request_with_retry(
+            "POST", url, data=data, headers=headers, **kwargs
+        )
 
     def _make_request_with_retry(
         self, method: str, url: str, headers: Optional[Dict] = None, **kwargs
@@ -64,7 +70,7 @@ class HttpClient:
         """带重试的核心请求方法"""
         last_exception = None
         headers = headers or {}
-        headers.setdefault('User-Agent', random.choice(USER_AGENTS))  # nosec B311
+        headers.setdefault("User-Agent", random.choice(USER_AGENTS))  # nosec B311
         for key, value in BROWSER_HEADERS.items():
             headers.setdefault(key, value)
 
@@ -79,11 +85,13 @@ class HttpClient:
             except requests.exceptions.Timeout as e:
                 last_exception = e
                 logging.warning(
-                    f"请求超时 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}")
+                    f"请求超时 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}"
+                )
             except requests.exceptions.ConnectionError as e:
                 last_exception = e
                 logging.warning(
-                    f"连接错误 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}")
+                    f"连接错误 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}"
+                )
             except requests.exceptions.RequestException as e:
                 last_exception = e
                 logging.error(f"请求失败: {e}")
@@ -94,8 +102,9 @@ class HttpClient:
                 break
 
             if attempt < self.max_retries:
-                delay = self.base_delay * (2 ** attempt) + \
-                    random.uniform(0, 0.5)  # nosec B311
+                delay = self.base_delay * (2**attempt) + random.uniform(
+                    0, 0.5
+                )  # nosec B311
                 logging.info(f"将在 {delay:.1f} 秒后重试...")
                 time.sleep(delay)
 
@@ -107,8 +116,9 @@ class HttpClient:
 
     def _validate_response_headers(self, response: requests.Response) -> bool:
         """验证响应头的安全性"""
-        total_header_size = sum(len(name) + len(value)
-                                for name, value in response.headers.items())
+        total_header_size = sum(
+            len(name) + len(value) for name, value in response.headers.items()
+        )
         if total_header_size > 8192:  # 8KB
             logging.warning(f"响应头过大 ({total_header_size} bytes)，可能存在风险")
             return False

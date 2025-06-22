@@ -27,13 +27,14 @@ def get_version_info():
         "author": __author__,
         "description": __description__,
         "release_date": RELEASE_DATE,
-        "min_python_version": MIN_PYTHON_VERSION
+        "min_python_version": MIN_PYTHON_VERSION,
     }
 
 
 def is_compatible_python_version():
     """检查当前Python版本是否兼容"""
     import sys
+
     current_version = sys.version_info[:2]
-    required_version = tuple(map(int, MIN_PYTHON_VERSION.split('.')))
+    required_version = tuple(map(int, MIN_PYTHON_VERSION.split(".")))
     return current_version >= required_version

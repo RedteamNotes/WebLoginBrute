@@ -36,22 +36,18 @@
 url: "https://redteamnotes.com/login"
 
 # 表单提交的目标 URL，通常与登录页面相同或在表单的 action 属性中指定
-action: "https://redteamnotes.com/login/authenticate"
+action: "https://redteamnotes.com/login"
 
 # 用户名和密码字典的路径
 users: "users.txt"
 passwords: "passwords.txt"
-
-# --- 结果判断 ---
-# 登录失败时，页面中会包含的特征字符串
-fail_string: "Invalid credentials"
 
 # --- 性能配置 ---
 # 并发线程数
 threads: 5
 ```
 
-> **提示**: `fail_string` 是判断登录是否失败的关键。请根据实际目标页面的返回内容进行设置。
+> **提示**: WebLoginBrute 会自动分析响应以判断登录是否成功，无需手动配置成功或失败的关键词。
 
 ## 4. 启动爆破
 
@@ -99,7 +95,7 @@ cd WebLoginBrute
 
 ### 2. 安装依赖
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
 ### 3. 准备字典
@@ -122,21 +118,19 @@ admin
 ```bash
 webloginbrute \
     --url "https://redteamnotes.com/login" \
-    --action "https://redteamnotes.com/login/authenticate" \
+    --action "https://redteamnotes.com/login" \
     --users "users.txt" \
     --passwords "passwords.txt" \
-    --fail-string "Invalid credentials" \
-    --verbose
+  --verbose
 ```
 
 **使用配置文件:**
 创建一个 `config.yaml` 文件:
 ```yaml
 url: "https://redteamnotes.com/login"
-action: "https://redteamnotes.com/login/authenticate"
+action: "https://redteamnotes.com/login"
 users: "users.txt"
 passwords: "passwords.txt"
-fail_string: "Invalid credentials"
 threads: 20
 verbose: true
 ```

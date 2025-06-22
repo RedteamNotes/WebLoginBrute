@@ -20,7 +20,7 @@ from .security import SecurityManager
 
 def get_secret_key():
     """获取安全的密钥，优先使用环境变量，否则生成临时密钥"""
-    secret_key = os.environ.get('WEBLOGINBRUTE_SECRET')
+    secret_key = os.environ.get("WEBLOGINBRUTE_SECRET")
     if not secret_key:
         # 生成临时密钥并记录警告
         secret_key = secrets.token_hex(32)
@@ -28,7 +28,7 @@ def get_secret_key():
             "未设置 WEBLOGINBRUTE_SECRET 环境变量，使用临时密钥。"
             "建议设置环境变量以提高安全性。"
         )
-    return secret_key.encode('utf-8') if isinstance(secret_key, str) else secret_key
+    return secret_key.encode("utf-8") if isinstance(secret_key, str) else secret_key
 
 
 SECRET_KEY = get_secret_key()
@@ -63,7 +63,7 @@ class StateManager:
 
         # 使用高效的数据结构来管理已尝试的组合
         # deque 用于限制内存占用，set 用于快速查找
-        self.max_in_memory_attempts = getattr(config, 'max_in_memory_attempts', 10000)
+        self.max_in_memory_attempts = getattr(config, "max_in_memory_attempts", 10000)
         self.attempted_combinations_deque = deque(maxlen=self.max_in_memory_attempts)
         self.attempted_combinations_set: Set[Tuple[str, str]] = set()
 
@@ -76,7 +76,10 @@ class StateManager:
         with self.lock:
             if combination not in self.attempted_combinations_set:
                 # 当deque满时，从set中移除最旧的元素
-                if len(self.attempted_combinations_deque) >= self.max_in_memory_attempts:
+                if (
+                    len(self.attempted_combinations_deque)
+                    >= self.max_in_memory_attempts
+                ):
                     oldest = self.attempted_combinations_deque.popleft()
                     self.attempted_combinations_set.discard(oldest)
 
@@ -94,10 +97,11 @@ class StateManager:
         try:
             # 强制垃圾回收
             import gc
+
             gc.collect()
 
             # 检查内存使用情况
-            if hasattr(self, '_check_memory_usage'):
+            if hasattr(self, "_check_memory_usage"):
                 self._check_memory_usage()
 
             logging.debug("内存清理完成")
@@ -108,6 +112,7 @@ class StateManager:
         """检查内存使用情况"""
         try:
             import psutil
+
             process = psutil.Process()
             memory_info = process.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
@@ -138,9 +143,9 @@ class StateManager:
                 progress_data = json.load(f)
 
             # 验证签名
-            if 'data' in progress_data and 'signature' in progress_data:
-                data = progress_data['data']
-                signature = progress_data['signature']
+            if "data" in progress_data and "signature" in progress_data:
+                data = progress_data["data"]
+                signature = progress_data["signature"]
 
                 if not verify_signature(data, signature):
                     logging.warning(f"进度文件签名验证失败: {self.progress_file}")
@@ -164,7 +169,7 @@ class StateManager:
             with self.lock:
                 self.attempted_combinations_set.update(loaded_attempts)
                 # 更新deque，但不超过其最大长度
-                for item in list(loaded_attempts)[-self.max_in_memory_attempts:]:
+                for item in list(loaded_attempts)[-self.max_in_memory_attempts :]:
                     self.attempted_combinations_deque.append(item)
 
             logging.info(
@@ -181,7 +186,9 @@ class StateManager:
             )
             return set(), {}
         except Exception as e:
-            logging.exception(f"加载进度文件 '{self.progress_file}' 时发生未知异常: {e}")
+            logging.exception(
+                f"加载进度文件 '{self.progress_file}' 时发生未知异常: {e}"
+            )
             return set(), {}
 
     def save_progress(self, stats: Dict[str, Any]) -> None:
@@ -200,7 +207,7 @@ class StateManager:
             data = json.dumps(progress_data, ensure_ascii=False)
             signature = sign_data(data)
             with open(self.progress_file, "w", encoding="utf-8") as f:
-                f.write(json.dumps({'data': data, 'signature': signature}))
+                f.write(json.dumps({"data": data, "signature": signature}))
             logging.debug(f"进度已保存到 '{self.progress_file}'")
         except Exception as e:
             logging.exception(f"保存进度到 '{self.progress_file}' 失败: {e}")

@@ -7,14 +7,36 @@ import logging
 import os
 import re
 from urllib.parse import urlparse
+import json
+import time
+from typing import Dict, Any, Literal
+import requests
 
 from .constants import SECURITY_CONFIG
 from .exceptions import SecurityError
+from .logger import setup_logging
+
+log = setup_logging()
 
 # 危险字符集合，使用 set 提升检测性能
 DANGEROUS_CHARS = {
-    '\0', '\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07',
-    '\x08', '\x09', '\x0a', '\x0b', '\x0c', '\x0d', '\x0e', '\x0f'
+    "\0",
+    "\x00",
+    "\x01",
+    "\x02",
+    "\x03",
+    "\x04",
+    "\x05",
+    "\x06",
+    "\x07",
+    "\x08",
+    "\x09",
+    "\x0a",
+    "\x0b",
+    "\x0c",
+    "\x0d",
+    "\x0e",
+    "\x0f",
 }
 
 
@@ -207,5 +229,73 @@ class SecurityManager:
     def check_security_issues(self):
         pass
 
-    def check_security_scan_completed(self, issues_found, high_severity, medium_severity, low_severity):
+    def check_security_scan_completed(
+        self, issues_found, high_severity, medium_severity, low_severity
+    ):
         pass
+
+    def _generate_report(self, report: Dict[str, Any]) -> str:
+        """
+        生成安全报告
+        """
+        if not all(k in report for k in ["passed", "failed", "details"]):
+            log.warning("安全报告格式无效")
+            return
+
+        summary = f"### 安全审计摘要 (等级: {self.security_level})\n"
+        summary += f"- **通过:** {report['passed']} 项\n"
+        summary += f"- **失败:** {report['failed']} 项\n"
+
+        if report["failed"] > 0:
+            summary += "\n**失败项详情:**\n"
+            for detail in report["details"]:
+                if not detail["success"]:
+                    summary += f"- **{detail['check_name']}:** {detail['message']}\n"
+
+        log.info("生成安全报告")
+        return summary
+
+    def _save_report(self, report: Dict[str, Any], format: str = "json"):
+        """
+        保存安全报告到文件
+        """
+        if format == "json":
+            filename = f"security_report_{int(time.time())}.json"
+            with open(filename, "w") as f:
+                json.dump(report, f, indent=4)
+            log.info(f"安全报告已保存到 {filename}")
+        else:
+            log.warning(f"不支持的报告格式: {format}")
+
+    def _is_rate_limited(self, response: requests.Response) -> bool:
+        """
+        检查是否被速率限制
+        """
+        # 简单的速率限制检查
+        if response.status_code == 429:
+            log.warning("检测到速率限制 (HTTP 429)")
+            return True
+
+        # 可以在这里添加更复杂的检查，例如检查响应内容
+
+        return False
+
+    def _is_suspicious_redirect(self, response: requests.Response) -> bool:
+        """
+        检查是否是可疑的重定向
+        """
+        if response.is_redirect:
+            location = response.headers.get("Location", "")
+            if "login" not in location and "error" not in location:
+                log.warning(f"检测到可疑重定向: {location}")
+                return True
+        return False
+
+    def get_security_level(self):
+        """返回当前安全级别"""
+        return self.security_level
+
+    def set_security_level(self, level: Literal["low", "standard", "high", "paranoid"]):
+        """设置安全级别"""
+        self.security_level = level
+        log.info(f"安全级别已设置为: {level}")

@@ -1,34 +1,36 @@
 # 配置详解
 
-本文档详细说明了 `WebLoginBrute` 的所有配置选项，您可以通过 **YAML 配置文件** 或 **命令行参数** 进行设置。
+本文档详细说明了 `WebLoginBrute` 的所有配置选项。您可以通过 **YAML 配置文件** 或 **命令行参数** 进行设置。命令行参数的优先级高于 YAML 文件。
 
 ## 配置方式
 
 ### 1. YAML 配置文件 (推荐)
-这是推荐的方式，尤其适用于复杂或需要复用的任务。
+这是管理复杂配置的首选方式。
 
 **示例 `config.yaml`:**
 ```yaml
-# --- 核心配置 (必需) ---
+# --- 核心配置 ---
 url: "https://target.com/login"
-action: "https://target.com/login/authenticate"
+action: "https://target.com/login"
 users: "wordlists/users.txt"
 passwords: "wordlists/passwords.txt"
 
-# --- 结果判断 (必需) ---
-# 定义如何判断登录成功或失败，至少提供一个
-success_string: "Welcome to your dashboard"
-fail_string: "Invalid username or password"
-
-# --- 性能与网络 ---
+# --- 性能配置 ---
 threads: 10
 timeout: 20
+aggressive: 2
+
+# --- 会话管理 ---
+enable_session_rotation: true
+session_rotation_interval: 600
+
+# --- 安全配置 ---
+security_level: 'high'
+allowed_domains:
+  - "target.com"
 
 # --- 功能选项 ---
-csrf: "csrf_token"
-resume: false
 verbose: true
-aggressive: 2
 log: "my_progress.json"
 ```
 
@@ -38,63 +40,88 @@ webloginbrute --config config.yaml
 ```
 
 ### 2. 命令行参数
-您也可以直接通过命令行参数进行配置，这适用于简单的、一次性的任务。
+适用于简单的、一次性的任务。
 
 **示例:**
 ```bash
 webloginbrute \
-    --url "https://redteamnotes.com/login" \
-    --action "https://redteamnotes.com/login/authenticate" \
-    --users "wordlists/users.txt" \
-    --passwords "wordlists/passwords.txt" \
-    --fail-string "Invalid username or password" \
-    --threads 10 \
-    -v
+    -u "https://target.com/login" \
+    -U "wordlists/users.txt" \
+    -P "wordlists/passwords.txt" \
+    -t 10 \
+    --verbose
 ```
-
-### 配置优先级
-**命令行参数 > YAML 文件 > 默认值**
-- 如果一个选项同时在命令行和 YAML 文件中设置，将优先使用命令行中的值。
 
 ## 参数详解
 
-### 核心参数 (Core)
+### 核心参数
 
-| 参数名 | 命令行 | 类型 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `url` | `-u`, `--url` | `string` | **必需。** 登录表单所在的页面 URL。 |
-| `action` | `-a`, `--action` | `string` | **必需。** 表单提交的目标 URL。 |
-| `users` | `-U`, `--users` | `string` | **必需。** 用户名字典文件的路径。 |
-| `passwords` | `-P`, `--passwords` | `string` | **必需。** 密码字典文件的路径。 |
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `url` | `-u`, `--url` | `string` | **必需** | 登录表单页面的 URL。 |
+| `action` | `-a`, `--action` | `string` | 与 `url` 相同 | 表单提交的目标 URL。 |
+| `users` | `-U`, `--users` | `string` | **必需** | 用户名字典文件的路径。 |
+| `passwords` | `-P`, `--passwords` | `string` | **必需** | 密码字典文件的路径。 |
+| `csrf` | `-s`, `--csrf` | `string` | `None` | CSRF Token 在表单中的 `name` 属性。 |
+| `login_field` | `-f`, `--login-field` | `string` | `None` | 额外的登录字段名。 |
+| `login_value` | `-v`, `--login-value` | `string` | `None` | 额外的登录字段值。 |
+| `cookie` | `-c`, `--cookie` | `string` | `None` | Cookie 文件的路径。 |
 
-### 结果判断 (Result Identification)
+> **注意**: WebLoginBrute 会自动分析响应以判断登录是否成功，无需手动配置成功或失败的关键词。
 
-| 参数名 | 命令行 | 类型 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `success_string` | `--success-string` | `string` | 判断登录**成功**的特征字符串。 |
-| `fail_string` | `--fail-string` | `string` | 判断登录**失败**的特征字符串。 |
-| `success_redirect` | `--success-redirect` | `string` | 登录成功后会跳转到的目标 URL。 |
-| `failure_redirect` | `--failure-redirect` | `string` | 登录失败后会跳转到的目标 URL。 |
-> **注意**: 您必须至少提供以上四个选项中的一个，以便程序判断登录结果。
+### 性能参数
 
-### 性能与网络 (Performance & Network)
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `threads` | `-t`, `--threads` | `int` | `5` | 并发线程数。 |
+| `timeout` | `-T`, `--timeout` | `int` | `30` | HTTP 请求超时时间（秒）。 |
+| `aggressive` | `-A`, `--aggressive` | `int` | `1` | 对抗级别 (0-静默, 1-标准, 2-激进, 3-极限)。 |
 
-| 参数名 | 命令行 | 类型 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `threads` | `-t`, `--threads` | `int` | 并发线程数。默认为 `5`。 |
-| `timeout` | `-T`, `--timeout` | `int` | HTTP 请求超时时间（秒）。默认为 `30`。 |
-| `aggressive` | `-A`, `--aggressive` | `int` | 对抗级别 (0, 1, 2, 3)。默认为 1。 |
+### 内存管理参数
 
-### 功能选项 (Features)
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `max_memory_mb` | `--max-memory` | `int` | `1024` | 最大内存使用量 (MB)。 |
+| `memory_warning_threshold` | `--memory-warning-threshold` | `int` | `80` | 内存使用警告阈值 (%)。 |
+| `memory_critical_threshold` | `--memory-critical-threshold` | `int` | `95` | 内存使用临界阈值 (%)。 |
+| `memory_cleanup_interval` | `--memory-cleanup-interval` | `int` | `60` | 内存清理检查间隔 (秒)。 |
 
-| 参数名 | 命令行 | 类型 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `csrf` | `-s`, `--csrf` | `string` | CSRF Token 在表单中的 `name` 属性值。 |
-| `cookie` | `-c`, `--cookie` | `string` | 包含预设 Cookie 的文件路径。 |
-| `resume` | `-r`, `--resume` | `boolean` | 从上次中断处恢复爆破。默认为 `false`。 |
-| `log` | `-l`, `--log` | `string` | 指定进度文件的保存路径。 |
-| `dry_run` | `--dry-run` | `boolean` | 测试模式，不实际发送请求。|
-| `verbose` | `--verbose` | `boolean` | 启用详细日志输出。 |
+### 会话管理参数
+
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `enable_session_rotation` | `--disable-session-rotation` | `bool` | `True` | 启用/禁用会话轮换 (命令行中为禁用)。 |
+| `session_rotation_interval` | `--session-rotation-interval` | `int` | `300` | 会话轮换间隔 (秒)。 |
+| `session_lifetime` | `--session-lifetime` | `int` | `1800` | 会话生命周期 (秒)。 |
+| `max_session_pool_size` | `--max-session-pool-size` | `int` | `50` | 最大会话池大小。 |
+| `rotation_strategy` | `--rotation-strategy` | `string` | `'time'` | 轮换策略 ('time', 'request_count', 'error_rate')。 |
+
+### 健康检查参数
+
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `enable_health_check` | `--disable-health-check` | `bool` | `True` | 启用/禁用启动时健康检查 (命令行中为禁用)。 |
+| `validate_network_connectivity` | `--disable-network-validation` | `bool` | `True` | 验证网络连通性 (命令行中为禁用)。 |
+| `validate_file_integrity` | `--disable-file-validation` | `bool` | `True` | 验证文件完整性 (命令行中为禁用)。 |
+| `max_file_size` | `--max-file-size` | `int` | `100` | 健康检查时允许的最大文件大小 (MB)。 |
+
+### 安全参数
+
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `security_level` | `--security-level` | `string` | `'standard'` | 安全级别 ('low', 'standard', 'high', 'paranoid')。 |
+| `allowed_domains` | `N/A` | `List[str]` | `[]` | 允许的目标域名列表 (仅限 YAML)。 |
+| `blocked_domains` | `N/A` | `List[str]` | `[]` | 阻止的目标域名列表 (仅限 YAML)。 |
+
+### 功能与输出参数
+
+| YAML 参数 | 命令行参数 | 类型 | 默认值 | 描述 |
+|:---|:---|:---|:---|:---|
+| `resume` | `-r`, `--resume` | `bool` | `False` | 从上次中断处恢复爆破。 |
+| `log` | `-l`, `--log` | `string` | `bruteforce_progress.json` | 指定进度文件的保存路径。 |
+| `dry_run` | `--dry-run` | `bool` | `False` | 测试模式，不实际发送请求。 |
+| `verbose` | `--verbose` | `bool` | `False` | 启用详细日志输出。 |
+| `version` | `-V`, `--version` | `N/A` | `N/A` | 显示程序版本并退出。 |
 
 ## 参数概览
 
