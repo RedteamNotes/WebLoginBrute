@@ -20,7 +20,7 @@ from .logger import setup_logging
 from .parsers import analyze_form_fields, contains_captcha, extract_token
 from .reporting import StatsManager
 from .state import StateManager
-from .wordlists import load_wordlist, load_wordlist_as_list
+from .wordlists import load_wordlist_as_list
 from .memory_manager import get_memory_manager, MemoryConfig
 from .session_manager import get_session_rotator, SessionConfig
 from .health_check import get_health_checker, run_health_checks
