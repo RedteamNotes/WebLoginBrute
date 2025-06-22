@@ -1,6 +1,9 @@
 # WebLoginBrute v0.27.1 配置文件示例
 # 复制此文件为 config.yaml 并根据需要修改
 
+# ⚠️ 切勿将真实密码、cookie等敏感信息直接写入此文件！
+# 建议将敏感信息通过安全方式管理，如环境变量或专用密钥管理系统。
+
 # 必需参数
 url: "https://redteamnotes.com/login"                    # 登录表单页面URL
 action: "https://redteamnotes.com/login/authenticate"    # 登录表单提交URL

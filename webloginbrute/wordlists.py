@@ -22,8 +22,8 @@ def detect_encoding(file_path: str) -> str:
         return 'utf-8'
 
 
-def load_wordlist(path, config):
-    """加载字典文件 - 生成器版本，避免内存压力"""
+def load_wordlist(path, config=None, chunk_size=10000):
+    """分块读取字典文件，防止内存溢出"""
     # 验证文件路径
     if not os.path.exists(path):
         raise ConfigurationError(f"字典文件未找到: {path}")
@@ -40,15 +40,22 @@ def load_wordlist(path, config):
     encoding = detect_encoding(path)
     
     try:
-        with open(path, "r", encoding=encoding, errors="replace") as f:
-            max_lines = getattr(config, "max_lines", 1000000)
-            for i, line in enumerate(f):
-                if i >= max_lines:
-                    logging.warning(f"字典文件行数过多，只读取前{max_lines}行")
-                    break
-                stripped = line.strip()
-                if stripped and not stripped.startswith('#'):  # 忽略注释行
-                    yield stripped
+        with open(path, 'rb') as f:
+            raw_data = f.read(4096)
+            result = chardet.detect(raw_data)
+            encoding = result['encoding'] or 'utf-8'
+        with open(path, 'r', encoding=encoding, errors='ignore') as f:
+            chunk = []
+            for line in f:
+                line = line.strip()
+                if line:
+                    chunk.append(line)
+                if len(chunk) >= chunk_size:
+                    for item in chunk:
+                        yield item
+                    chunk = []
+            for item in chunk:
+                yield item
     except UnicodeDecodeError as e:
         logging.error(f"文件编码错误: {e}")
         # 尝试使用其他编码

@@ -8,10 +8,16 @@ import time
 from collections import deque
 from threading import RLock
 from typing import Any, Dict, Set, Tuple
+import hmac
+import hashlib
 
 from .exceptions import ConfigurationError
 from .security import SecurityManager
 
+SECRET_KEY = b'webloginbrute-signature-key'  # 可放到配置或环境变量
+
+def sign_data(data: str, key=SECRET_KEY):
+    return hmac.new(key, data.encode(), hashlib.sha256).hexdigest()
 
 class StateManager:
     """
@@ -110,8 +116,10 @@ class StateManager:
         }
 
         try:
+            data = json.dumps(progress_data, ensure_ascii=False)
+            signature = sign_data(data)
             with open(self.progress_file, "w", encoding="utf-8") as f:
-                json.dump(progress_data, f, ensure_ascii=False, indent=2)
+                f.write(json.dumps({'data': data, 'signature': signature}))
             logging.debug(f"进度已保存到 '{self.progress_file}'")
         except Exception as e:
             logging.exception(f"保存进度到 '{self.progress_file}' 失败: {e}")

@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import re
 
 import requests
 from bs4 import BeautifulSoup
@@ -70,6 +71,18 @@ def printSuccess(username, password):
     print()
     print("[*] Credentials:\t" + username + ":" + password)
     print()
+
+
+def safe_input(val, maxlen=128):
+    if not isinstance(val, str) or len(val) > maxlen:
+        raise ValueError("输入不合法")
+    return val
+
+
+def mask_sensitive(msg):
+    if not isinstance(msg, str):
+        return msg
+    return re.sub(r'(password|token|cookie|secret|key)=\S+', r'\1=***', msg, flags=re.I)
 
 
 if __name__ == "__main__":

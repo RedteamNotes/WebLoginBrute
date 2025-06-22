@@ -56,6 +56,9 @@ class SecureFormatter(logging.Formatter):
         for pattern, replacement in patterns:
             message = re.sub(pattern, replacement, message, flags=re.IGNORECASE)
 
+        # 脱敏常见敏感字段
+        message = re.sub(r'(password|token|cookie|secret|key)=\S+', r'\1=***', message, flags=re.I)
+
         return message
 
 

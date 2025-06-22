@@ -85,16 +85,34 @@ class Config(BaseModel):
     def url_must_be_http(cls, v):
         if v and not (v.startswith('http://') or v.startswith('https://')):
             raise ValueError('URL必须以http://或https://开头')
+        if v and len(v) > 2048:
+            raise ValueError('URL过长')
         return v
 
     @validator('users', 'passwords', pre=True, always=True)
     def required_file_must_exist(cls, v):
         if v and not os.path.exists(v):
             raise ValueError(f'必需文件不存在: {v}')
+        if v and len(v) > 256:
+            raise ValueError('文件路径过长')
         return v
 
     @validator('cookie', pre=True, always=True)
     def optional_file_must_exist_if_provided(cls, v):
         if v and not os.path.exists(v):
             raise ValueError(f'可选文件不存在: {v}')
+        if v and len(v) > 256:
+            raise ValueError('文件路径过长')
+        return v
+
+    @validator('login_field', 'login_value', pre=True, always=True)
+    def login_field_value_length(cls, v):
+        if v and len(v) > 128:
+            raise ValueError('字段值过长')
+        return v
+
+    @validator('csrf', pre=True, always=True)
+    def csrf_length(cls, v):
+        if v and len(v) > 128:
+            raise ValueError('CSRF字段名过长')
         return v
