@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# DO NOT EDIT: This file is frozen legacy code.
 
 import argparse
 import sys
