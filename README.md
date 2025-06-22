@@ -1,4 +1,4 @@
-# WebLoginBrute 0.27.2
+# WebLoginBrute 0.27
 
 为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
 
@@ -119,15 +119,6 @@ result = self._check_login_success(
 )
 ```
 
-## 安全注意事项
-
-⚠️ **重要提醒**：
-- 仅用于授权的安全测试
-- 遵守相关法律法规
-- 保护敏感信息
-- 使用代理隐藏身份
-- 定期清理痕迹
-
 ## 文档
 
 详细文档请访问：[Wiki](https://github.com/RedteamNotes/WebLoginBrute/wiki)
@@ -137,14 +128,6 @@ result = self._check_login_success(
 - [高级功能](https://github.com/RedteamNotes/WebLoginBrute/wiki/Advanced-Features)
 - [故障排除](https://github.com/RedteamNotes/WebLoginBrute/wiki/Troubleshooting)
 
-## 许可证
+## 许可证和免责声明
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 免责声明
-
-本工具仅用于授权的安全测试和教育目的。使用者需自行承担使用风险，开发者不承担任何法律责任。
+本工具仅用于授权的安全测试和教育目的。使用者需自行承担使用风险，开发者不承担任何法律责任。MIT License - 详见 [LICENSE](LICENSE) 文件
