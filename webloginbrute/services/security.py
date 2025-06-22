@@ -9,7 +9,7 @@ import re
 from urllib.parse import urlparse
 import json
 import time
-from typing import Dict, Any, Literal, List
+from typing import Dict, Any, Literal
 import requests
 
 from ..constants import SECURITY_CONFIG
@@ -199,7 +199,7 @@ class SecurityManager:
 
         # 检查路径中的危险字符
         if check_dangerous_chars(filepath):
-            raise SecurityError(f"路径包含危险字符")
+            raise SecurityError("路径包含危险字符")
 
         # 检查路径是否为空或只包含空白字符
         if not normalized_path.strip():

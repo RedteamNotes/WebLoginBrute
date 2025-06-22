@@ -51,7 +51,7 @@ def from_args_and_yaml() -> Config:
         config = Config.model_validate(final_config)
 
         # 执行初始健康检查
-        if config.enable_health_check:
+        if not config.dry_run and config.enable_health_check:
             run_health_checks(config)
         
         return config

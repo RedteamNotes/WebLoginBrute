@@ -8,11 +8,9 @@ WebLoginBrute 会话管理模块
 import logging
 import time
 import random
-import threading
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from threading import Lock, Timer
-from urllib.parse import urlparse
 
 import requests
 from requests import Session
@@ -20,7 +18,6 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from ..constants import USER_AGENTS, BROWSER_HEADERS
-from .memory_manager import get_memory_manager
 
 # 初始化日志
 log = logging.getLogger(__name__)
@@ -126,7 +123,6 @@ class SessionRotator:
         """检查并执行会话轮换"""
         try:
             with self.lock:
-                current_time = time.time()
                 sessions_to_rotate = []
 
                 for session_key, session_info in self._session_pool.items():

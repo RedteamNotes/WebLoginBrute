@@ -10,10 +10,7 @@ from typing import Optional, Dict, Any, List
 from urllib.parse import urlparse
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
-from ..config.models import Config
 from ..constants import USER_AGENTS, BROWSER_HEADERS
 from ..utils.exceptions import NetworkError
 from .session_manager import get_session_rotator, SessionConfig

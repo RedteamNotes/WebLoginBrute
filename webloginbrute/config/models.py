@@ -7,9 +7,15 @@ import os
 from typing import Any, Dict, Optional, List
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+    model_validator,
+    ConfigDict,
+)
 
-from ..utils.exceptions import ConfigurationError, SecurityError
+from ..utils.exceptions import SecurityError
 from ..version import __version__
 
 # 使用统一的版本管理
@@ -200,14 +206,13 @@ class Config(BaseModel):
         description="详细输出",
     )
 
-    class Config:
-        """Pydantic配置"""
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        use_enum_values=True,
+    )
 
-        validate_assignment = True
-        extra = "forbid"
-        use_enum_values = True
-
-    @validator("url", "action", pre=True, always=True)
+    @field_validator("url", "action", mode="before")
     def url_must_be_http(cls, v):
         """验证URL必须是HTTP/HTTPS"""
         if not v:
@@ -217,7 +222,7 @@ class Config(BaseModel):
             raise ValueError("URL必须使用http://或https://协议")
         return v
 
-    @validator("users", "passwords", pre=True, always=True)
+    @field_validator("users", "passwords", mode="before")
     def required_file_must_exist(cls, v):
         """验证必需的文件是否存在"""
         if not v:
@@ -230,7 +235,7 @@ class Config(BaseModel):
             raise ValueError(f"文件不可读: {v}")
         return v
 
-    @validator("cookie", pre=True, always=True)
+    @field_validator("cookie", mode="before")
     def optional_file_must_exist_if_provided(cls, v):
         """如果提供了可选文件，验证它是否存在"""
         if not v:
@@ -239,37 +244,39 @@ class Config(BaseModel):
             raise ValueError(f"Cookie文件不存在: {v}")
         return v
 
-    @validator("login_field", "login_value", pre=True, always=True)
+    @field_validator("login_field", "login_value", mode="before")
     def login_field_value_length(cls, v):
         """验证登录字段值的长度"""
         if v and len(v) > 1024:
             raise ValueError("登录字段值过长")
         return v
 
-    @validator("csrf", pre=True, always=True)
+    @field_validator("csrf", mode="before")
     def csrf_length(cls, v):
         """验证CSRF token字段名的长度"""
         if v and len(v) > 256:
-            raise ValueError("CSRF字段名过长")
+            raise ValueError("CSRF token字段名过长")
         return v
 
-    @validator("rotation_strategy")
+    @field_validator("rotation_strategy")
     def validate_rotation_strategy(cls, v):
-        """验证轮换策略"""
-        if v not in ["time", "request", "failure"]:
-            raise ValueError("无效的轮换策略")
+        """验证轮换策略是否有效"""
+        valid_strategies = {"time", "requests", "failure"}
+        if v not in valid_strategies:
+            raise ValueError(f"无效的轮换策略: {v}")
         return v
 
-    @validator("security_level")
+    @field_validator("security_level")
     def validate_security_level(cls, v):
-        """验证安全级别"""
-        if v not in ["low", "standard", "high", "paranoid"]:
-            raise ValueError("无效的安全级别")
+        """验证安全级别是否有效"""
+        valid_levels = {"none", "standard", "high", "paranoid"}
+        if v not in valid_levels:
+            raise ValueError(f"无效的安全级别: {v}")
         return v
 
     @model_validator(mode="after")
     def validate_config_consistency(self):
-        """验证配置的一致性"""
+        """验证配置项之间的一致性"""
         # 验证域名白名单
         if self.allowed_domains:
             url_domain = urlparse(self.url).hostname
