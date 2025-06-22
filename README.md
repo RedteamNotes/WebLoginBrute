@@ -1,198 +1,260 @@
-# WebLoginBrute 0.27
+# WebLoginBrute
 
-为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
+一个专业的Web登录暴力破解工具，具有高级安全特性和性能优化功能。
 
-## 特性
+## ✨ 特性
 
-- 🚀 **模块化架构**：清晰的代码结构，易于扩展和维护
-- 🔒 **安全防护**：内置输入验证、路径遍历防护、命令注入检测
-- 🎯 **智能对抗**：多级对抗策略，支持 CSRF Token 动态刷新
-- ⚡ **高性能**：多线程并发、会话池管理、DNS 缓存优化
-- 📊 **详细统计**：实时进度监控、性能指标、审计日志
-- 🔄 **断点续扫**：智能进度保存与恢复，避免重复爆破
-- 🛡️ **企业级稳定**：完善的异常处理、优雅退出机制
+- 🔒 **高级安全特性**: 支持多种安全级别和防护机制
+- ⚡ **高性能**: 多线程并发，智能内存管理
+- 🛡️ **健康检查**: 实时系统资源监控和网络连通性验证
+- 📊 **详细报告**: 完整的测试报告和性能统计
+- 🔧 **灵活配置**: 支持命令行参数、配置文件和环境变量
+- 📝 **完整日志**: 结构化日志记录和审计功能
+- 🔄 **会话管理**: 智能会话轮换和连接池管理
+- 🚀 **易于使用**: 简洁的CLI界面和丰富的API
 
-## 快速开始
+## 🚀 快速开始
 
 ### 安装
 
 ```bash
-# 从PyPI安装
-pip install webloginbrute
-
-# 或从源码安装
-git clone https://github.com/RedteamNotes/WebLoginBrute.git
+# 从源码安装
+git clone https://github.com/your-repo/WebLoginBrute.git
 cd WebLoginBrute
-pip install -r requirements.txt
+pip install -e .
+
+# 或使用 pip 安装
+pip install webloginbrute
 ```
 
 ### 基本使用
 
 ```bash
-# 使用命令行参数
-webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/login/authenticate -U users.txt -P passwords.txt -t 10 --verbose
+# 最简单的用法
+webloginbrute -u https://example.com/login -a https://example.com/auth -U users.txt -P passwords.txt
 
 # 使用配置文件
-webloginbrute --config config.yaml -t 10 -A 2
+webloginbrute --config config.yaml
+
+# 详细输出模式
+webloginbrute -u https://example.com/login -a https://example.com/auth -U users.txt -P passwords.txt --verbose
 ```
 
-### 配置文件示例
+### 环境变量配置
 
-```yaml
-# WebLoginBrute v0.27.2 配置文件示例
-# 复制此文件为 config.yaml 并根据需要修改
+创建 `.env` 文件以提高安全性：
 
-# ⚠️ 切勿将真实密码、cookie等敏感信息直接写入此文件！
-# 建议将敏感信息通过安全方式管理，如环境变量或专用密钥管理系统。
+```bash
+# 复制示例文件
+cp env.example .env
 
-# 必需参数
-url: "https://redteamnotes.com/login"                    # 登录表单页面URL
-action: "https://redteamnotes.com/login/authenticate"    # 登录表单提交URL
-users: "wordlists/users.txt"                       # 用户名字典文件
-passwords: "wordlists/passwords.txt"               # 密码字典文件
+# 编辑配置
+nano .env
+```
 
-# 结果判断参数 (至少需要一个)
-success_string: "Welcome"
-fail_string: "Invalid credentials"
-# success_redirect: "https://redteamnotes.com/dashboard"
-# failure_redirect: "https://redteamnotes.com/login?error=1"
+主要环境变量：
 
-# 可选参数
-csrf: "csrf_token"                                 # CSRF token字段名（如目标无CSRF token可省略）
-login_field: "domain"                              # 额外的登录字段名（可选）
-login_value: "example.com"                         # 额外的登录字段值（可选）
-cookie: "cookies.txt"                              # Cookie文件路径（可选）
+```bash
+# 安全配置
+WEBLOGINBRUTE_SECRET=your-super-secret-key-here
+WEBLOGINBRUTE_ENCRYPTION_KEY=your-32-character-encryption-key
 
 # 性能配置
-threads: 5                                         # 并发线程数 (1-100)
-timeout: 30                                        # 请求超时时间（秒）
-aggressive: 1                                   # 对抗级别: 0(静默) 1(标准) 2(激进) 3(极限)
+WEBLOGINBRUTE_TIMEOUT=30
+WEBLOGINBRUTE_THREADS=10
+WEBLOGINBRUTE_MAX_MEMORY_MB=1024
 
-# 进度管理
-resume: false                                      # 是否从上次中断的地方继续
-log: "bruteforce_progress.json"                    # 进度文件路径
-
-# 输出控制
-verbose: false                                     # 详细输出模式
-dry_run: false                                     # 测试模式，不实际发送请求
-
-# 高级配置（可选）
-# max_retries: 3                                   # 最大重试次数
-# base_delay: 1.0                                  # 基础延迟时间（秒）
-# session_lifetime: 300                            # 会话生命周期（秒）
-# max_session_pool_size: 100                       # 最大会话池大小
-# enable_adaptive_rate_control: true               # 启用自适应速率控制
-# rate_adjustment_threshold: 5                     # 速率调整阈值
-
-# 安全配置（可选）
-# ip_whitelist: ["192.168.1.0/24"]                # IP白名单
-# ip_blacklist: ["10.0.0.1"]                      # IP黑名单
+# 安全级别
+WEBLOGINBRUTE_SECURITY_LEVEL=standard
+WEBLOGINBRUTE_ENABLE_HEALTH_CHECK=true
 ```
 
-## 高级功能
+## 📚 文档
+
+- [用户指南](docs/User-Guide.md) - 详细的使用说明和最佳实践
+- [API参考](docs/API-Reference.md) - 完整的API文档和示例
+- [配置说明](docs/Configuration.md) - 配置选项详解
+- [高级功能](docs/Advanced-Features.md) - 高级特性和自定义选项
+- [常见问题](docs/FAQ.md) - 故障排除和常见问题解答
+
+## 🔧 配置选项
+
+### 命令行参数
+
+| 参数 | 短参数 | 描述 | 示例 |
+|------|--------|------|------|
+| `--url` | `-u` | 登录表单页面URL | `https://example.com/login` |
+| `--action` | `-a` | 登录表单提交URL | `https://example.com/auth` |
+| `--users` | `-U` | 用户名字典文件 | `users.txt` |
+| `--passwords` | `-P` | 密码字典文件 | `passwords.txt` |
+| `--csrf` | `-s` | CSRF token字段名 | `csrf_token` |
+| `--timeout` | `-T` | 请求超时时间（秒） | `30` |
+| `--threads` | `-t` | 并发线程数 | `10` |
+| `--aggressive` | `-A` | 对抗级别 | `2` |
+| `--verbose` | | 详细输出 | |
+| `--dry-run` | | 测试模式 | |
 
 ### 对抗级别
 
-- **0 (静默模式)**: 最低对抗，最快速度，适合测试环境
-- **1 (标准模式)**: 平衡性能和隐蔽性，默认级别
-- **2 (激进模式)**: 高对抗，较慢速度，适合有WAF的目标
-- **3 (极限模式)**: 最高对抗，最慢速度，适合高安全性目标
+| 级别 | 描述 | 特点 |
+|------|------|------|
+| 0 | 静默模式 | 最小化网络活动，适合隐蔽测试 |
+| 1 | 标准模式 | 平衡性能和隐蔽性 |
+| 2 | 激进模式 | 高并发，快速测试 |
+| 3 | 极限模式 | 最大并发，可能触发防护 |
 
-### 断点续扫
+### 安全级别
+
+| 级别 | 描述 | 特点 |
+|------|------|------|
+| low | 低安全级别 | 最小安全检查，适合测试环境 |
+| standard | 标准安全级别 | 平衡安全性和性能 |
+| high | 高安全级别 | 严格安全检查，适合生产环境 |
+| paranoid | 偏执安全级别 | 最高安全检查，可能影响性能 |
+
+## 📁 项目结构
+
+```
+WebLoginBrute/
+├── webloginbrute/          # 核心代码
+│   ├── __init__.py
+│   ├── cli.py              # 命令行界面
+│   ├── config.py           # 配置管理
+│   ├── core.py             # 核心引擎
+│   ├── http_client.py      # HTTP客户端
+│   ├── health_check.py     # 健康检查
+│   ├── logger.py           # 日志管理
+│   ├── performance_monitor.py  # 性能监控
+│   ├── memory_manager.py   # 内存管理
+│   ├── session_manager.py  # 会话管理
+│   └── security.py         # 安全功能
+├── tests/                  # 测试文件
+├── docs/                   # 文档
+├── scripts/                # 脚本工具
+├── examples/               # 示例文件
+├── wordlists/              # 字典文件
+├── reports/                # 报告输出
+├── env.example             # 环境变量示例
+├── config.example.yaml     # 配置文件示例
+└── README.md
+```
+
+## 🔒 安全特性
+
+- **环境变量配置**: 支持通过环境变量设置敏感配置
+- **健康检查**: 实时监控系统资源和网络状态
+- **会话轮换**: 智能会话管理和连接池优化
+- **内存管理**: 自动内存清理和资源监控
+- **安全级别**: 多级安全控制机制
+- **审计日志**: 完整的操作审计记录
+
+## 🚀 高级功能
+
+### 会话管理
 
 ```bash
-# 启动任务
-webloginbrute --config config.yaml --resume
+# 启用会话轮换
+webloginbrute --session-rotation-interval 300 --session-lifetime 1800
 
-# 中断后继续
-webloginbrute --config config.yaml --resume
+# 自定义轮换策略
+webloginbrute --rotation-strategy request_count
 ```
 
-### 自定义成功判定
-
-```python
-# 在代码中自定义成功/失败关键字
-success_keywords = ["dashboard", "welcome", "logout", "profile"]
-failure_keywords = ["invalid", "incorrect", "failed", "error"]
-
-# 调用时传入自定义关键字
-result = self._check_login_success(
-    response, 
-    success_keywords=success_keywords,
-    failure_keywords=failure_keywords
-)
-```
-
-## 文档
-
-详细文档请访问：[Wiki](https://github.com/RedteamNotes/WebLoginBrute/wiki)
-
-- [快速开始](https://github.com/RedteamNotes/WebLoginBrute/wiki/Getting-Started)
-- [配置详解](https://github.com/RedteamNotes/WebLoginBrute/wiki/Configuration)
-- [高级功能](https://github.com/RedteamNotes/WebLoginBrute/wiki/Advanced-Features)
-- [故障排除](https://github.com/RedteamNotes/WebLoginBrute/wiki/Troubleshooting)
-
-## 开发
-
-### 环境设置
+### 内存管理
 
 ```bash
-# 运行开发环境设置脚本
-python setup_dev.py
+# 设置内存限制
+webloginbrute --max-memory 2048 --memory-warning-threshold 80
 
-# 或手动设置
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或 venv\Scripts\activate  # Windows
-pip install -r requirements.txt
+# 自动内存清理
+webloginbrute --memory-cleanup-interval 60
 ```
+
+### 健康检查
+
+```bash
+# 启用健康检查
+webloginbrute --enable-health-check
+
+# 禁用网络验证
+webloginbrute --disable-network-validation
+```
+
+## 📊 输出示例
+
+### 进度文件 (progress.json)
+
+```json
+{
+  "start_time": "2024-01-01T12:00:00",
+  "total_combinations": 1000,
+  "current_position": 500,
+  "successful_logins": [
+    {
+      "username": "admin",
+      "password": "password",
+      "timestamp": "2024-01-01T12:30:00"
+    }
+  ],
+  "failed_attempts": 499,
+  "errors": []
+}
+```
+
+### 日志文件
+
+- `webloginbrute.log`: 主日志文件
+- `audit.log`: 审计日志
+- `performance.log`: 性能日志
+- `progress.json`: 进度文件
+
+## 🔧 开发
 
 ### 运行测试
 
 ```bash
 # 运行所有测试
-python run_tests.py
+python scripts/run_tests.py
 
-# 或使用pytest
-pytest tests/
-
-# 生成覆盖率报告
-coverage run -m pytest tests/
-coverage report
-coverage html
-```
-
-### 代码质量
-
-```bash
-# 代码格式化
-black webloginbrute tests/
-
-# 导入排序
-isort webloginbrute tests/
+# 运行单元测试
+python -m unittest discover tests -v
 
 # 代码检查
-flake8 webloginbrute tests/
+python -m flake8 webloginbrute tests
 
 # 安全检查
-bandit -r webloginbrute/
-
-# 类型检查
-mypy webloginbrute/
+python -m bandit -r webloginbrute
 ```
 
-### 贡献指南
+### 贡献
 
-1. Fork项目
-2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建Pull Request
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
 
-## 许可证
+## 📄 许可证
 
-本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-## 免责声明
+## ⚠️ 免责声明
 
-本工具仅用于授权的安全测试和教育目的。使用者需要确保在合法授权的情况下使用，作者不承担任何法律责任。
+本工具仅用于授权的安全测试和教育目的。使用者必须：
+
+- 仅在获得明确授权的目标上进行测试
+- 遵守相关法律法规
+- 承担使用本工具的所有责任
+
+作者不对任何滥用行为承担责任。
+
+## 🤝 支持
+
+- 📖 [文档](docs/)
+- 🐛 [报告问题](https://github.com/your-repo/WebLoginBrute/issues)
+- 💬 [讨论](https://github.com/your-repo/WebLoginBrute/discussions)
+- 📧 邮箱: your-email@example.com
+
+---
+
+**WebLoginBrute** - 专业的Web登录安全测试工具

@@ -18,6 +18,7 @@ RELEASE_DATE = "2024-12-19"
 # 最低Python版本要求
 MIN_PYTHON_VERSION = "3.8"
 
+
 def get_version_info():
     """获取完整的版本信息"""
     return {
@@ -29,9 +30,10 @@ def get_version_info():
         "min_python_version": MIN_PYTHON_VERSION
     }
 
+
 def is_compatible_python_version():
     """检查当前Python版本是否兼容"""
     import sys
     current_version = sys.version_info[:2]
     required_version = tuple(map(int, MIN_PYTHON_VERSION.split('.')))
-    return current_version >= required_version 
+    return current_version >= required_version

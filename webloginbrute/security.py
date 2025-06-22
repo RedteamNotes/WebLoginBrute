@@ -17,9 +17,11 @@ DANGEROUS_CHARS = {
     '\x08', '\x09', '\x0a', '\x0b', '\x0c', '\x0d', '\x0e', '\x0f'
 }
 
+
 def check_dangerous_chars(filepath: str) -> bool:
     """检查路径中是否包含危险字符"""
     return any(char in filepath for char in DANGEROUS_CHARS)
+
 
 class SecurityManager:
     """安全管理器"""
@@ -198,3 +200,12 @@ class SecurityManager:
                 raise SecurityError(f"路径包含可疑的绝对路径模式: {pattern}")
 
         return normalized_path
+
+    def log_security_event(self, event_type, details, severity):
+        pass
+
+    def check_security_issues(self):
+        pass
+
+    def check_security_scan_completed(self, issues_found, high_severity, medium_severity, low_severity):
+        pass

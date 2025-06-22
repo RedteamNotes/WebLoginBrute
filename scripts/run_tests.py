@@ -17,7 +17,7 @@ def run_tests():
     print("🧪 开始运行测试...")
     
     # 添加项目根目录到Python路径
-    project_root = Path(__file__).parent
+    project_root = Path(__file__).parent.parent
     sys.path.insert(0, str(project_root))
     
     # 发现并运行所有测试
@@ -44,19 +44,22 @@ def run_coverage():
         print("💡 安装命令: pip install coverage")
         return False
     
+    # 获取项目根目录
+    project_root = Path(__file__).parent.parent
+    
     # 运行覆盖率测试
     cmd = [
         sys.executable, '-m', 'coverage', 'run', 
         '--source=webloginbrute', 
-        '-m', 'unittest', 'discover', 'tests'
+        '-m', 'unittest', 'discover', str(project_root / 'tests')
     ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root))
     
     if result.returncode == 0:
         # 生成覆盖率报告
         report_cmd = [sys.executable, '-m', 'coverage', 'report']
-        report_result = subprocess.run(report_cmd, capture_output=True, text=True)
+        report_result = subprocess.run(report_cmd, capture_output=True, text=True, cwd=str(project_root))
         
         if report_result.returncode == 0:
             print("📈 覆盖率报告:")
@@ -64,7 +67,7 @@ def run_coverage():
             
             # 生成HTML报告
             html_cmd = [sys.executable, '-m', 'coverage', 'html']
-            subprocess.run(html_cmd, capture_output=True)
+            subprocess.run(html_cmd, capture_output=True, cwd=str(project_root))
             print("📁 HTML报告已生成到 htmlcov/ 目录")
             
             return True
@@ -88,9 +91,12 @@ def run_linting():
         print("💡 安装命令: pip install flake8")
         return False
     
+    # 获取项目根目录
+    project_root = Path(__file__).parent.parent
+    
     # 运行flake8检查
     cmd = [sys.executable, '-m', 'flake8', 'webloginbrute', 'tests']
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root))
     
     if result.returncode == 0:
         print("✅ 代码检查通过")
@@ -111,13 +117,16 @@ def run_security_check():
         print("💡 安装命令: pip install bandit")
         return False
     
+    # 获取项目根目录
+    project_root = Path(__file__).parent.parent
+    
     # 运行bandit安全检查
     cmd = [
         sys.executable, '-m', 'bandit', 
         '-r', 'webloginbrute',
         '-f', 'txt'
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root))
     
     if result.returncode == 0:
         print("✅ 安全检查通过")

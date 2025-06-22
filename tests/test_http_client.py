@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from unittest.mock import patch, Mock, MagicMock
 import requests
-from requests.exceptions import RequestException, Timeout
+import tempfile
+import os
+from unittest.mock import patch, Mock
+from requests.exceptions import Timeout, ConnectionError, RequestException
 
 from webloginbrute.http_client import HttpClient
 from webloginbrute.exceptions import NetworkError
@@ -26,7 +28,7 @@ class TestHttpClient(unittest.TestCase):
         self.mock_config.enable_session_rotation = True
         self.mock_config.rotation_strategy = 'time'
         self.mock_config.cookie = None
-        
+
         self.client = HttpClient(self.mock_config)
 
     def test_initialization(self):
@@ -46,16 +48,16 @@ class TestHttpClient(unittest.TestCase):
         mock_response.text = "Success"
         mock_response.raise_for_status.return_value = None
         mock_response.headers = {"Content-Type": "text/html"}
-        
+
         mock_session_instance = Mock()
         mock_session_instance.request.return_value = mock_response
         mock_session.return_value = mock_session_instance
-        
+
         with patch.object(self.client.session_rotator, 'get_session', return_value=mock_session_instance):
             with patch.object(self.client, '_validate_response_headers', return_value=True):
                 with patch.object(self.client.session_rotator, 'record_request'):
                     response = self.client.get("https://example.com")
-                    
+
                     self.assertEqual(response, mock_response)
                     mock_session_instance.request.assert_called_once()
 
@@ -67,16 +69,17 @@ class TestHttpClient(unittest.TestCase):
         mock_response.text = "Success"
         mock_response.raise_for_status.return_value = None
         mock_response.headers = {"Content-Type": "text/html"}
-        
+
         mock_session_instance = Mock()
         mock_session_instance.request.return_value = mock_response
         mock_session.return_value = mock_session_instance
-        
+
         with patch.object(self.client.session_rotator, 'get_session', return_value=mock_session_instance):
             with patch.object(self.client, '_validate_response_headers', return_value=True):
                 with patch.object(self.client.session_rotator, 'record_request'):
-                    response = self.client.post("https://example.com", data={"key": "value"})
-                    
+                    response = self.client.post(
+                        "https://example.com", data={"key": "value"})
+
                     self.assertEqual(response, mock_response)
                     mock_session_instance.request.assert_called_once()
 
@@ -86,7 +89,7 @@ class TestHttpClient(unittest.TestCase):
         mock_session_instance = Mock()
         mock_session_instance.request.side_effect = Timeout("Request timeout")
         mock_session.return_value = mock_session_instance
-        
+
         with patch.object(self.client.session_rotator, 'get_session', return_value=mock_session_instance):
             with patch.object(self.client.session_rotator, 'record_request'):
                 with self.assertRaises(NetworkError):
@@ -96,9 +99,10 @@ class TestHttpClient(unittest.TestCase):
     def test_request_connection_error(self, mock_session):
         """测试连接错误"""
         mock_session_instance = Mock()
-        mock_session_instance.request.side_effect = requests.exceptions.ConnectionError("Connection failed")
+        mock_session_instance.request.side_effect = requests.exceptions.ConnectionError(
+            "Connection failed")
         mock_session.return_value = mock_session_instance
-        
+
         with patch.object(self.client.session_rotator, 'get_session', return_value=mock_session_instance):
             with patch.object(self.client.session_rotator, 'record_request'):
                 with self.assertRaises(NetworkError):
@@ -109,12 +113,13 @@ class TestHttpClient(unittest.TestCase):
         """测试HTTP错误"""
         mock_response = Mock()
         mock_response.status_code = 404
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("Not Found", response=mock_response)
-        
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "Not Found", response=mock_response)
+
         mock_session_instance = Mock()
         mock_session_instance.request.return_value = mock_response
         mock_session.return_value = mock_session_instance
-        
+
         with patch.object(self.client.session_rotator, 'get_session', return_value=mock_session_instance):
             with patch.object(self.client.session_rotator, 'record_request'):
                 with self.assertRaises(NetworkError):
@@ -126,7 +131,7 @@ class TestHttpClient(unittest.TestCase):
         normal_response = Mock()
         normal_response.headers = {"Content-Type": "text/html", "Server": "nginx"}
         self.assertTrue(self.client._validate_response_headers(normal_response))
-        
+
         # 测试过大响应头
         large_response = Mock()
         large_response.headers = {"X-Large-Header": "x" * 10000}  # 10KB header
@@ -147,7 +152,7 @@ class TestHttpClient(unittest.TestCase):
             'avg_error_rate': 0.02,
             'rotation_stats': {'total_rotations': 3}
         }
-        
+
         with patch.object(self.client.session_rotator, 'get_pool_stats', return_value=mock_stats):
             stats = self.client.get_session_stats()
             self.assertEqual(stats, mock_stats)
@@ -159,7 +164,7 @@ class TestHttpClient(unittest.TestCase):
             'cleanup_count': 5,
             'gc_count': 10
         }
-        
+
         with patch.object(self.client.memory_manager, 'get_memory_stats', return_value=mock_stats):
             stats = self.client.get_memory_stats()
             self.assertEqual(stats, mock_stats)
@@ -169,7 +174,7 @@ class TestHttpClient(unittest.TestCase):
         with patch('socket.gethostbyname', return_value="192.168.1.1"):
             ip = self.client._resolve_host("example.com")
             self.assertEqual(ip, "192.168.1.1")
-            
+
             # 测试缓存
             ip2 = self.client._resolve_host("example.com")
             self.assertEqual(ip2, "192.168.1.1")
@@ -182,4 +187,4 @@ class TestHttpClient(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

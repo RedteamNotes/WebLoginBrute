@@ -19,7 +19,7 @@ fail_string: "Invalid credentials"
 # 可选参数
 csrf: "csrf_token"                                 # CSRF token字段名（如目标无CSRF token可省略）
 login_field: "domain"                              # 额外的登录字段名（可选）
-login_value: "example.com"                         # 额外的登录字段值（可选）
+login_value: "redteamnotes.com"                    # 额外的登录字段值（可选）
 cookie: "cookies.txt"                              # Cookie文件路径（可选）
 
 # 性能配置

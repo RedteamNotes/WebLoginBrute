@@ -9,12 +9,11 @@ import logging
 import time
 import threading
 import socket
-import ssl
-from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import json
+from typing import Dict, Any, List, Callable, Optional
 
 try:
     import psutil
@@ -23,7 +22,6 @@ except ImportError:
     PSUTIL_AVAILABLE = False
     logging.warning("psutil不可用，系统监控功能将受限")
 
-from .exceptions import HealthCheckError, NetworkError, MemoryError, PerformanceError
 
 
 @dataclass
@@ -35,7 +33,7 @@ class HealthCheckResult:
     details: Dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.now)
     duration: float = 0.0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
         return {
@@ -59,7 +57,7 @@ class SystemMetrics:
     network_connections: int = 0
     open_files: int = 0
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
         return {
@@ -76,7 +74,7 @@ class SystemMetrics:
 
 class HealthChecker:
     """系统健康检查器"""
-    
+
     def __init__(self, config=None):
         self.config = config
         self.lock = threading.Lock()
@@ -84,7 +82,7 @@ class HealthChecker:
         self.metrics_history: List[SystemMetrics] = []
         self.max_history_size = 100
         self.check_callbacks: Dict[str, List[Callable]] = {}
-        
+
         # 性能阈值
         self.thresholds = {
             'cpu_warning': 80.0,  # CPU使用率警告阈值
@@ -96,24 +94,24 @@ class HealthChecker:
             'response_time_warning': 5.0,  # 响应时间警告阈值(秒)
             'response_time_critical': 10.0,  # 响应时间临界阈值(秒)
         }
-        
+
         if self.config:
             # 从配置中更新阈值
             self.thresholds.update({
                 'memory_warning': getattr(config, 'memory_warning_threshold', 0.8) * 100,
                 'memory_critical': getattr(config, 'memory_critical_threshold', 0.9) * 100,
             })
-    
+
     def register_check_callback(self, check_name: str, callback: Callable):
         """注册检查回调函数"""
         if check_name not in self.check_callbacks:
             self.check_callbacks[check_name] = []
         self.check_callbacks[check_name].append(callback)
-    
+
     def run_all_checks(self) -> List[HealthCheckResult]:
         """运行所有健康检查"""
         logging.info("开始执行系统健康检查...")
-        
+
         checks = [
             self.check_system_resources,
             self.check_network_connectivity,
@@ -122,7 +120,7 @@ class HealthChecker:
             self.check_process_health,
             self.check_network_performance,
         ]
-        
+
         results = []
         for check_func in checks:
             try:
@@ -139,24 +137,24 @@ class HealthChecker:
                     message=f"检查执行失败: {e}",
                     details={'error': str(e)}
                 ))
-        
+
         # 保存结果
         with self.lock:
             self.check_results.extend(results)
             # 保持历史记录在合理范围内
             if len(self.check_results) > self.max_history_size:
                 self.check_results = self.check_results[-self.max_history_size:]
-        
+
         # 触发回调
         self._trigger_callbacks(results)
-        
+
         logging.info(f"健康检查完成，共执行 {len(results)} 项检查")
         return results
-    
+
     def check_system_resources(self) -> HealthCheckResult:
         """检查系统资源"""
         start_time = time.time()
-        
+
         if not PSUTIL_AVAILABLE:
             return HealthCheckResult(
                 check_name='system_resources',
@@ -164,54 +162,54 @@ class HealthChecker:
                 message='psutil不可用，无法检查系统资源',
                 details={'psutil_available': False}
             )
-        
+
         try:
             # CPU使用率
             cpu_percent = psutil.cpu_percent(interval=1)
-            
+
             # 内存使用情况
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
             memory_available_mb = memory.available / 1024 / 1024
-            
+
             # 磁盘使用情况
             disk = psutil.disk_usage('.')
             disk_percent = (disk.used / disk.total) * 100
             disk_free_mb = disk.free / 1024 / 1024
-            
+
             # 网络连接数
             network_connections = len(psutil.net_connections())
-            
+
             # 打开文件数
             open_files = len(psutil.Process().open_files())
-            
+
             # 判断状态
             status = 'PASS'
             message = '系统资源正常'
-            
+
             if cpu_percent > self.thresholds['cpu_critical']:
                 status = 'FAIL'
                 message = f'CPU使用率过高: {cpu_percent:.1f}%'
             elif cpu_percent > self.thresholds['cpu_warning']:
                 status = 'WARNING'
                 message = f'CPU使用率较高: {cpu_percent:.1f}%'
-            
+
             if memory_percent > self.thresholds['memory_critical']:
                 status = 'FAIL'
                 message = f'内存使用率过高: {memory_percent:.1f}%'
             elif memory_percent > self.thresholds['memory_warning']:
                 status = 'WARNING'
                 message = f'内存使用率较高: {memory_percent:.1f}%'
-            
+
             if disk_percent > self.thresholds['disk_critical']:
                 status = 'FAIL'
                 message = f'磁盘使用率过高: {disk_percent:.1f}%'
             elif disk_percent > self.thresholds['disk_warning']:
                 status = 'WARNING'
                 message = f'磁盘使用率较高: {disk_percent:.1f}%'
-            
+
             duration = time.time() - start_time
-            
+
             return HealthCheckResult(
                 check_name='system_resources',
                 status=status,
@@ -227,7 +225,7 @@ class HealthChecker:
                 },
                 duration=duration
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 check_name='system_resources',
@@ -236,28 +234,28 @@ class HealthChecker:
                 details={'error': str(e)},
                 duration=time.time() - start_time
             )
-    
+
     def check_network_connectivity(self) -> List[HealthCheckResult]:
         """检查网络连通性"""
         results = []
-        
+
         if not self.config:
             return [HealthCheckResult(
                 check_name='network_connectivity',
                 status='UNKNOWN',
                 message='配置不可用，无法检查网络连通性'
             )]
-        
+
         urls_to_check = [self.config.url, self.config.action]
-        
+
         for url in urls_to_check:
             start_time = time.time()
-            
+
             try:
                 parsed = urlparse(url)
                 hostname = parsed.hostname
                 port = parsed.port or (443 if parsed.scheme == 'https' else 80)
-                
+
                 # DNS解析检查
                 try:
                     ip = socket.gethostbyname(hostname)
@@ -279,14 +277,14 @@ class HealthChecker:
                     )
                     results.append(dns_result)
                     continue
-                
+
                 # 端口连通性检查
                 try:
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.settimeout(10)
                     result = sock.connect_ex((hostname, port))
                     sock.close()
-                    
+
                     if result == 0:
                         port_result = HealthCheckResult(
                             check_name=f'port_connectivity_{hostname}_{port}',
@@ -300,11 +298,12 @@ class HealthChecker:
                             check_name=f'port_connectivity_{hostname}_{port}',
                             status='FAIL',
                             message=f'端口连通性失败: {hostname}:{port}',
-                            details={'hostname': hostname, 'port': port, 'error_code': result},
+                            details={'hostname': hostname,
+                                     'port': port, 'error_code': result},
                             duration=time.time() - start_time
                         )
                     results.append(port_result)
-                    
+
                 except Exception as e:
                     port_result = HealthCheckResult(
                         check_name=f'port_connectivity_{hostname}_{port}',
@@ -314,7 +313,7 @@ class HealthChecker:
                         duration=time.time() - start_time
                     )
                     results.append(port_result)
-                
+
             except Exception as e:
                 results.append(HealthCheckResult(
                     check_name=f'network_connectivity_{url}',
@@ -323,56 +322,57 @@ class HealthChecker:
                     details={'url': url, 'error': str(e)},
                     duration=time.time() - start_time
                 ))
-        
+
         return results
-    
+
     def check_memory_usage(self) -> HealthCheckResult:
         """检查内存使用情况"""
         start_time = time.time()
-        
+
         if not PSUTIL_AVAILABLE:
             return HealthCheckResult(
                 check_name='memory_usage',
                 status='UNKNOWN',
                 message='psutil不可用，无法检查内存使用情况'
             )
-        
+
         try:
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
             memory_available_mb = memory.available / 1024 / 1024
             memory_total_mb = memory.total / 1024 / 1024
-            
+
             # 检查当前进程内存使用
             process = psutil.Process()
             process_memory_mb = process.memory_info().rss / 1024 / 1024
-            
+
             status = 'PASS'
             message = '内存使用正常'
-            
+
             if memory_percent > self.thresholds['memory_critical']:
                 status = 'FAIL'
                 message = f'内存使用率过高: {memory_percent:.1f}%'
             elif memory_percent > self.thresholds['memory_warning']:
                 status = 'WARNING'
                 message = f'内存使用率较高: {memory_percent:.1f}%'
-            
+
             # 记录指标
             metrics = SystemMetrics(
                 cpu_usage=psutil.cpu_percent(),
                 memory_usage=memory_percent,
                 memory_available=memory_available_mb,
-                disk_usage=(psutil.disk_usage('.').used / psutil.disk_usage('.').total) * 100,
+                disk_usage=(psutil.disk_usage('.').used
+                            / psutil.disk_usage('.').total) * 100,
                 disk_free=psutil.disk_usage('.').free / 1024 / 1024,
                 network_connections=len(psutil.net_connections()),
                 open_files=len(process.open_files())
             )
-            
+
             with self.lock:
                 self.metrics_history.append(metrics)
                 if len(self.metrics_history) > self.max_history_size:
                     self.metrics_history = self.metrics_history[-self.max_history_size:]
-            
+
             return HealthCheckResult(
                 check_name='memory_usage',
                 status=status,
@@ -385,7 +385,7 @@ class HealthChecker:
                 },
                 duration=time.time() - start_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 check_name='memory_usage',
@@ -394,34 +394,34 @@ class HealthChecker:
                 details={'error': str(e)},
                 duration=time.time() - start_time
             )
-    
+
     def check_disk_space(self) -> HealthCheckResult:
         """检查磁盘空间"""
         start_time = time.time()
-        
+
         if not PSUTIL_AVAILABLE:
             return HealthCheckResult(
                 check_name='disk_space',
                 status='UNKNOWN',
                 message='psutil不可用，无法检查磁盘空间'
             )
-        
+
         try:
             disk = psutil.disk_usage('.')
             disk_percent = (disk.used / disk.total) * 100
             disk_free_mb = disk.free / 1024 / 1024
             disk_total_mb = disk.total / 1024 / 1024
-            
+
             status = 'PASS'
             message = '磁盘空间充足'
-            
+
             if disk_percent > self.thresholds['disk_critical']:
                 status = 'FAIL'
                 message = f'磁盘空间严重不足: {disk_percent:.1f}%'
             elif disk_percent > self.thresholds['disk_warning']:
                 status = 'WARNING'
                 message = f'磁盘空间不足: {disk_percent:.1f}%'
-            
+
             return HealthCheckResult(
                 check_name='disk_space',
                 status=status,
@@ -433,7 +433,7 @@ class HealthChecker:
                 },
                 duration=time.time() - start_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 check_name='disk_space',
@@ -442,39 +442,39 @@ class HealthChecker:
                 details={'error': str(e)},
                 duration=time.time() - start_time
             )
-    
+
     def check_process_health(self) -> HealthCheckResult:
         """检查进程健康状态"""
         start_time = time.time()
-        
+
         if not PSUTIL_AVAILABLE:
             return HealthCheckResult(
                 check_name='process_health',
                 status='UNKNOWN',
                 message='psutil不可用，无法检查进程健康状态'
             )
-        
+
         try:
             process = psutil.Process()
-            
+
             # 检查进程状态
             status_info = process.status()
             cpu_percent = process.cpu_percent()
             memory_info = process.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
-            
+
             # 检查线程数
             thread_count = process.num_threads()
-            
+
             # 检查打开的文件数
             open_files_count = len(process.open_files())
-            
+
             # 检查网络连接数
             network_connections_count = len(process.connections())
-            
+
             status = 'PASS'
             message = '进程健康状态正常'
-            
+
             # 检查进程是否响应
             if status_info == psutil.STATUS_ZOMBIE:
                 status = 'FAIL'
@@ -482,16 +482,16 @@ class HealthChecker:
             elif status_info == psutil.STATUS_STOPPED:
                 status = 'FAIL'
                 message = '进程已停止'
-            
+
             # 检查资源使用是否异常
             if cpu_percent > 90:
                 status = 'WARNING'
                 message = f'进程CPU使用率过高: {cpu_percent:.1f}%'
-            
+
             if memory_mb > 1000:  # 超过1GB
                 status = 'WARNING'
                 message = f'进程内存使用过高: {memory_mb:.1f}MB'
-            
+
             return HealthCheckResult(
                 check_name='process_health',
                 status=status,
@@ -506,7 +506,7 @@ class HealthChecker:
                 },
                 duration=time.time() - start_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 check_name='process_health',
@@ -515,25 +515,25 @@ class HealthChecker:
                 details={'error': str(e)},
                 duration=time.time() - start_time
             )
-    
+
     def check_network_performance(self) -> HealthCheckResult:
         """检查网络性能"""
         start_time = time.time()
-        
+
         if not self.config:
             return HealthCheckResult(
                 check_name='network_performance',
                 status='UNKNOWN',
                 message='配置不可用，无法检查网络性能'
             )
-        
+
         try:
             import requests
-            
+
             # 测试网络延迟
             test_url = self.config.url
             response_times = []
-            
+
             for i in range(3):  # 测试3次取平均值
                 try:
                     req_start = time.time()
@@ -541,8 +541,8 @@ class HealthChecker:
                     req_time = time.time() - req_start
                     response_times.append(req_time)
                 except Exception as e:
-                    logging.warning(f"网络性能测试失败 (尝试 {i+1}): {e}")
-            
+                    logging.warning(f"网络性能测试失败 (尝试 {i + 1}): {e}")
+
             if not response_times:
                 return HealthCheckResult(
                     check_name='network_performance',
@@ -551,21 +551,21 @@ class HealthChecker:
                     details={'error': '所有测试请求都失败'},
                     duration=time.time() - start_time
                 )
-            
+
             avg_response_time = sum(response_times) / len(response_times)
             min_response_time = min(response_times)
             max_response_time = max(response_times)
-            
+
             status = 'PASS'
             message = f'网络性能正常，平均响应时间: {avg_response_time:.3f}s'
-            
+
             if avg_response_time > self.thresholds['response_time_critical']:
                 status = 'FAIL'
                 message = f'网络响应时间过长: {avg_response_time:.3f}s'
             elif avg_response_time > self.thresholds['response_time_warning']:
                 status = 'WARNING'
                 message = f'网络响应时间较慢: {avg_response_time:.3f}s'
-            
+
             return HealthCheckResult(
                 check_name='network_performance',
                 status=status,
@@ -579,7 +579,7 @@ class HealthChecker:
                 },
                 duration=time.time() - start_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 check_name='network_performance',
@@ -588,7 +588,7 @@ class HealthChecker:
                 details={'error': str(e)},
                 duration=time.time() - start_time
             )
-    
+
     def _trigger_callbacks(self, results: List[HealthCheckResult]):
         """触发检查回调函数"""
         for result in results:
@@ -598,21 +598,21 @@ class HealthChecker:
                         callback(result)
                     except Exception as e:
                         logging.error(f"健康检查回调执行失败: {e}")
-    
+
     def get_summary(self) -> Dict[str, Any]:
         """获取健康检查摘要"""
         with self.lock:
             if not self.check_results:
                 return {'status': 'UNKNOWN', 'message': '暂无健康检查结果'}
-            
+
             # 统计各状态数量
             status_counts = {}
             for result in self.check_results:
                 status_counts[result.status] = status_counts.get(result.status, 0) + 1
-            
+
             # 获取最新结果
             latest_results = self.check_results[-10:]  # 最近10个结果
-            
+
             # 确定整体状态
             if status_counts.get('FAIL', 0) > 0:
                 overall_status = 'FAIL'
@@ -623,7 +623,7 @@ class HealthChecker:
             else:
                 overall_status = 'PASS'
                 message = '所有检查项正常'
-            
+
             return {
                 'overall_status': overall_status,
                 'message': message,
@@ -632,25 +632,25 @@ class HealthChecker:
                 'latest_results': [result.to_dict() for result in latest_results],
                 'last_check_time': self.check_results[-1].timestamp.isoformat() if self.check_results else None
             }
-    
+
     def get_metrics_history(self, hours: int = 1) -> List[Dict[str, Any]]:
         """获取指定时间范围内的指标历史"""
         with self.lock:
             if not self.metrics_history:
                 return []
-            
+
             cutoff_time = datetime.now() - timedelta(hours=hours)
             recent_metrics = [
                 metrics for metrics in self.metrics_history
                 if metrics.timestamp > cutoff_time
             ]
-            
+
             return [metrics.to_dict() for metrics in recent_metrics]
-    
+
     def export_report(self, file_path: str = None) -> str:
         """导出健康检查报告"""
         summary = self.get_summary()
-        
+
         report = {
             'timestamp': datetime.now().isoformat(),
             'summary': summary,
@@ -658,9 +658,9 @@ class HealthChecker:
             'metrics_history': [metrics.to_dict() for metrics in self.metrics_history],
             'thresholds': self.thresholds
         }
-        
+
         report_json = json.dumps(report, ensure_ascii=False, indent=2)
-        
+
         if file_path:
             try:
                 with open(file_path, 'w', encoding='utf-8') as f:
@@ -668,7 +668,7 @@ class HealthChecker:
                 logging.info(f"健康检查报告已导出到: {file_path}")
             except Exception as e:
                 logging.error(f"导出健康检查报告失败: {e}")
-        
+
         return report_json
 
 
@@ -693,4 +693,4 @@ def run_health_checks(config=None) -> List[HealthCheckResult]:
 def get_health_summary() -> Dict[str, Any]:
     """获取健康检查摘要的便捷函数"""
     checker = get_health_checker()
-    return checker.get_summary() 
+    return checker.get_summary()

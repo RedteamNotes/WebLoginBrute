@@ -7,15 +7,17 @@ import os
 import time
 from collections import deque
 from threading import RLock
-from typing import Any, Dict, Set, Tuple, List
 import hmac
 import hashlib
 import secrets
+from typing import Tuple, Set, Dict, Any
 
 from .exceptions import ConfigurationError
 from .security import SecurityManager
 
 # 改进的密钥管理机制
+
+
 def get_secret_key():
     """获取安全的密钥，优先使用环境变量，否则生成临时密钥"""
     secret_key = os.environ.get('WEBLOGINBRUTE_SECRET')
@@ -28,16 +30,20 @@ def get_secret_key():
         )
     return secret_key.encode('utf-8') if isinstance(secret_key, str) else secret_key
 
+
 SECRET_KEY = get_secret_key()
+
 
 def sign_data(data: str, key=SECRET_KEY):
     """使用HMAC-SHA256签名数据"""
     return hmac.new(key, data.encode(), hashlib.sha256).hexdigest()
 
+
 def verify_signature(data: str, signature: str, key=SECRET_KEY) -> bool:
     """验证数据签名"""
     expected_signature = sign_data(data, key)
     return hmac.compare_digest(expected_signature, signature)
+
 
 class StateManager:
     """
@@ -60,7 +66,7 @@ class StateManager:
         self.max_in_memory_attempts = getattr(config, 'max_in_memory_attempts', 10000)
         self.attempted_combinations_deque = deque(maxlen=self.max_in_memory_attempts)
         self.attempted_combinations_set: Set[Tuple[str, str]] = set()
-        
+
         # 内存管理
         self._last_cleanup = time.time()
         self._cleanup_interval = 300  # 5分钟清理一次
@@ -76,7 +82,7 @@ class StateManager:
 
                 self.attempted_combinations_deque.append(combination)
                 self.attempted_combinations_set.add(combination)
-                
+
                 # 定期清理内存
                 current_time = time.time()
                 if current_time - self._last_cleanup > self._cleanup_interval:
@@ -89,11 +95,11 @@ class StateManager:
             # 强制垃圾回收
             import gc
             gc.collect()
-            
+
             # 检查内存使用情况
             if hasattr(self, '_check_memory_usage'):
                 self._check_memory_usage()
-                
+
             logging.debug("内存清理完成")
         except Exception as e:
             logging.warning(f"内存清理失败: {e}")
@@ -105,7 +111,7 @@ class StateManager:
             process = psutil.Process()
             memory_info = process.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
-            
+
             if memory_mb > 500:  # 500MB阈值
                 logging.warning(f"内存使用较高: {memory_mb:.1f}MB")
         except ImportError:
@@ -135,11 +141,11 @@ class StateManager:
             if 'data' in progress_data and 'signature' in progress_data:
                 data = progress_data['data']
                 signature = progress_data['signature']
-                
+
                 if not verify_signature(data, signature):
                     logging.warning(f"进度文件签名验证失败: {self.progress_file}")
                     return set(), {}
-                
+
                 # 解析实际数据
                 progress_data = json.loads(data)
             else:
@@ -158,7 +164,7 @@ class StateManager:
             with self.lock:
                 self.attempted_combinations_set.update(loaded_attempts)
                 # 更新deque，但不超过其最大长度
-                for item in list(loaded_attempts)[-self.max_in_memory_attempts :]:
+                for item in list(loaded_attempts)[-self.max_in_memory_attempts:]:
                     self.attempted_combinations_deque.append(item)
 
             logging.info(

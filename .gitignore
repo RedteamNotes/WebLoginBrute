@@ -74,3 +74,63 @@ venv.bak/
 
 # Cloned Wiki
 WebLoginBrute.wiki/
+
+# WebLoginBrute specific ignores
+# Reports and logs (may contain sensitive information)
+reports/*.json
+reports/*.log
+reports/*.txt
+*.log
+logs/
+
+# Configuration files (may contain sensitive data)
+config.yaml
+config.yml
+*.yaml
+*.yml
+!config.example.yaml
+!config.example.yml
+
+# Session and progress files
+*.session
+*.progress
+*.state
+bruteforce_progress.json
+
+# Wordlists and dictionaries (if large or sensitive)
+wordlists/*.txt
+wordlists/*.dict
+*.txt
+!requirements.txt
+!README.txt
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Security and sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+*.pwd
+*.pass
+secrets.txt
+passwords.txt
+users.txt
+
+# Performance and monitoring data
+performance_*.json
+health_check_*.json
+memory_*.json
+session_*.json
+
+# OS specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

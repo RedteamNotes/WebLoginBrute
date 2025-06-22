@@ -34,6 +34,10 @@ class StatsManager:
             "captcha_detected": 0,
             "start_time": time.time(),
             "end_time": None,
+            "current_user": "",
+            "current_password": "",
+            "last_success_time": None,
+            "last_failure_time": None
         }
 
         self.performance: Dict[str, Any] = {
@@ -57,6 +61,7 @@ class StatsManager:
     def get_stats(self) -> Dict[str, Any]:
         """获取当前统计信息的一个副本"""
         with self.lock:
+            self.stats["end_time"] = time.time()
             return self.stats.copy()
 
     def update_from_progress(self, progress_stats: Dict[str, Any]):
@@ -157,3 +162,29 @@ class StatsManager:
                 with open('final_report.json', 'w', encoding='utf-8') as f:
                     json.dump(report, f, ensure_ascii=False, indent=2)
                 print("[+] 已导出 JSON 格式报告: final_report.json")
+
+    def update_attempt(self, user: str, password: str = "") -> None:  # nosec B107
+        """更新尝试次数和当前凭证"""
+        with self.lock:
+            self.stats["current_user"] = user
+            self.stats["current_password"] = password
+            self.stats["total_attempts"] += 1
+
+    def update_success(self, user: str, password: str = "") -> None:  # nosec B107
+        """更新成功次数"""
+        with self.lock:
+            self.stats["current_user"] = user
+            self.stats["current_password"] = password
+            self.stats["successful_attempts"] += 1
+            self.stats["last_success_time"] = time.time()
+
+    def update_failure(self) -> None:
+        """更新失败次数"""
+        with self.lock:
+            self.stats["failed_attempts"] += 1
+            self.stats["last_failure_time"] = time.time()
+
+    def update_error(self) -> None:
+        """更新错误次数"""
+        with self.lock:
+            self.stats["error_count"] += 1
