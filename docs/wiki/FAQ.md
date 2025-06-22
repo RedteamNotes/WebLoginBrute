@@ -19,7 +19,7 @@ cd WebLoginBrute
 pip install -r requirements.txt
 
 # 3. 验证安装
-python -m webloginbrute -V
+webloginbrute -V
 ```
 
 ### Q: 提示 "pydantic 模块未找到" 怎么办？
@@ -41,7 +41,7 @@ pip install -r requirements.txt
 A: 使用以下命令：
 
 ```bash
-python -m webloginbrute -V
+webloginbrute -V
 ```
 
 应该显示：`webloginbrute 0.27.1`
@@ -183,7 +183,7 @@ A: 可以尝试以下策略：
 A: 使用 `-r` 参数：
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -197,10 +197,10 @@ A: 默认进度文件为 `bruteforce_progress.json`，位于程序运行目录�
 
 ### Q: 如何自定义进度文件路径？
 
-A: 使用 `-g` 参数：
+A: 使用 `-l` 参数：
 
 ```bash
--g my_progress.json  # 自定义进度文件
+-l my_progress.json  # 自定义进度文件
 ```
 
 ### Q: 进度文件可以删除吗？
@@ -328,7 +328,7 @@ A: 检查要点：
 A: 使用测试模式：
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -368,7 +368,7 @@ A: 获取帮助的渠道：
 
 A: 报告Bug时请提供：
 
-1. **版本信息**：`python -m webloginbrute -V`
+1. **版本信息**：`webloginbrute -V`
 2. **错误信息**：完整的错误日志
 3. **复现步骤**：详细的操作步骤
 4. **环境信息**：操作系统、Python版本等

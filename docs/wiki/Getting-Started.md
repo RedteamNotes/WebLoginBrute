@@ -58,7 +58,7 @@ threads: 5
 打开终端，确保您已激活虚拟环境，然后运行以下命令：
 
 ```bash
-python -m webloginbrute --config config.yaml
+webloginbrute --config config.yaml
 ```
 
 ## 5. 查看结果
@@ -120,7 +120,7 @@ admin
 ### 4. 运行爆破
 **基本命令:**
 ```bash
-python -m webloginbrute \
+webloginbrute \
     --url "https://redteamnotes.com/login" \
     --action "https://redteamnotes.com/login/authenticate" \
     --users "users.txt" \
@@ -141,7 +141,7 @@ verbose: true
 ```
 然后运行:
 ```bash
-python -m webloginbrute --config config.yaml
+webloginbrute --config config.yaml
 ```
 
 **找到正确密码后，程序将显示成功信息并退出。** 

@@ -46,7 +46,7 @@ pip install -r requirements.txt
 ### 5. 验证安装
 运行以下命令，如果能看到帮助信息，则说明安装成功：
 ```bash
-python -m webloginbrute --help
+webloginbrute --help
 ```
 
 ## 📦 依赖包说明

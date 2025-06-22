@@ -1,13 +1,13 @@
 # 架构设计 (Architecture)
 
-WebLoginBrute 采用了现代化的模块化架构，旨在实现高度的**可维护性**、**可扩展性**和**可测试性**。其核心设计思想是“关注点分离”（Separation of Concerns），即将不同功能的代码解耦到独立的、职责单一的模块中。
+WebLoginBrute 采用了现代化的模块化架构，旨在实现高度的**可维护性**、**可扩展性**和**可测试性**。其核心设计思想是"关注点分离"（Separation of Concerns），即将不同功能的代码解耦到独立的、职责单一的模块中。
 
 ## 目录结构概览
 
 ```
 WebLoginBrute/
 ├── webloginbrute/       # 核心逻辑包
-│   ├── __main__.py      # 包执行入口 (python -m webloginbrute)
+│   ├── __main__.py      # 包执行入口 (webloginbrute)
 │   ├── cli.py           # 命令行接口与主函数
 │   ├── config.py        # 配置管理 (合并命令行与文件配置)
 │   ├── core.py          # 核心流程调度器 (WebLoginBrute类)
@@ -34,7 +34,7 @@ WebLoginBrute/
 
 - **`config.py`**: 提供一个 `Config` 类，它能统一管理来自命令行和YAML配置文件的所有参数。它负责合并配置源（命令行优先）、校验必需项、并以类型安全的方式为其他模块提供配置。
 
-- **`core.py`**: 这是整个爆破工具的“大脑”和“指挥官”。`WebLoginBrute` 类在这里定义，它不关心如何发送HTTP请求或如何保存进度，只负责编排整个爆破流程：
+- **`core.py`**: 这是整个爆破工具的"大脑"和"指挥官"。`WebLoginBrute` 类在这里定义，它不关心如何发送HTTP请求或如何保存进度，只负责编排整个爆破流程：
   1. 初始化所有依赖模块。
   2. 加载字典和恢复进度。
   3. 创建和管理并发线程池。

@@ -34,7 +34,7 @@ log: "my_task_progress.json"
 
 **使用方法:**
 ```bash
-python -m webloginbrute --config config.yaml
+webloginbrute --config config.yaml
 ```
 
 ### 2. 命令行参数
@@ -42,7 +42,7 @@ python -m webloginbrute --config config.yaml
 
 **示例:**
 ```bash
-python -m webloginbrute \
+webloginbrute \
     --url "https://redteamnotes.com/login" \
     --action "https://redteamnotes.com/login/authenticate" \
     --users "wordlists/users.txt" \
@@ -255,7 +255,7 @@ log: "my_progress.json"
 使用配置文件：
 
 ```bash
-python -m webloginbrute --config config.yaml
+webloginbrute --config config.yaml
 ```
 
 ## 配置优先级
@@ -316,7 +316,7 @@ python -m webloginbrute --config config.yaml
 使用 `--dry-run` 模式验证配置：
 
 ```bash
-python -m webloginbrute -u https://target/login -a https://target/login -U users.txt -P passwords.txt --dry-run
+webloginbrute -u https://target/login -a https://target/login -U users.txt -P passwords.txt --dry-run
 ```
 
 这将检查所有配置项而不实际发送请求。
@@ -358,7 +358,7 @@ aggressive: "A2"
 使用 `--config-file` 参数来指定你的配置文件：
 
 ```bash
-python -m webloginbrute --config my_task.yaml
+webloginbrute --config my_task.yaml
 ```
 
 ---
@@ -370,7 +370,7 @@ python -m webloginbrute --config my_task.yaml
 ### 基础用法
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
     --url "http://example.com/login" \
     --action "http://example.com/perform_login" \
     --users "wordlists/users.txt" \
@@ -382,7 +382,7 @@ python -m webloginbrute \
 你可以组合使用多个参数来实现更复杂的功能：
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
     --url "http://example.com/login" \
     --action "http://example.com/perform_login" \
     --users "wordlists/users.txt" \

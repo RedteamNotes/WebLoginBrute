@@ -11,7 +11,7 @@ WebLoginBrute 支持断点续扫功能，即使程序中断也能从上次停止
 ### 启用断点续扫
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -30,14 +30,14 @@ python -m webloginbrute \
 ### 自定义进度文件
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
   -P passwords.txt \
   -t 10 \
   -r \
-  -g my_progress.json  # 自定义进度文件
+  -l my_progress.json  # 自定义进度文件
 ```
 
 ## 对抗级别
@@ -57,7 +57,7 @@ WebLoginBrute 提供4个对抗级别，适应不同的目标环境。
 
 ```bash
 # 标准模式（默认）
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -65,7 +65,7 @@ python -m webloginbrute \
   -A A1
 
 # 激进模式
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -108,7 +108,7 @@ python -m webloginbrute \
 ### Cookie 支持
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -152,7 +152,7 @@ rate_adjustment_threshold: 5
 ### 运行高级配置
 
 ```bash
-python -m webloginbrute --config advanced_config.yaml
+webloginbrute --config advanced_config.yaml
 ```
 
 ## 性能调优
@@ -161,7 +161,7 @@ python -m webloginbrute --config advanced_config.yaml
 
 ```bash
 # 高性能（适合无防护目标）
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -170,7 +170,7 @@ python -m webloginbrute \
   -A A0
 
 # 平衡性能（适合一般目标）
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -179,7 +179,7 @@ python -m webloginbrute \
   -A A1
 
 # 高隐蔽性（适合有防护目标）
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -192,7 +192,7 @@ python -m webloginbrute \
 
 ```bash
 # 网络较慢时增加超时
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -205,7 +205,7 @@ python -m webloginbrute \
 使用 `--dry-run` 模式测试配置而不实际发送请求：
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -219,7 +219,7 @@ python -m webloginbrute \
 启用详细输出查看调试信息：
 
 ```bash
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -255,7 +255,7 @@ python -m webloginbrute \
 
 ```bash
 # 第一步：测试模式验证配置
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -264,7 +264,7 @@ python -m webloginbrute \
   -v
 
 # 第二步：小规模测试
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U small_users.txt \
@@ -274,7 +274,7 @@ python -m webloginbrute \
   -v
 
 # 第三步：大规模攻击
-python -m webloginbrute \
+webloginbrute \
   -u https://target.com/login \
   -a https://target.com/login \
   -U users.txt \
@@ -282,7 +282,7 @@ python -m webloginbrute \
   -t 10 \
   -A A2 \
   -r \
-  -g project_progress.json
+  -l project_progress.json
 ```
 
 ### 2. 监控和调整
