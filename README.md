@@ -1,4 +1,4 @@
-# WebLoginBrute 0.27
+# WebLoginBrute 0.27.2
 
 为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
 
@@ -34,4 +34,117 @@ webloginbrute --config config.yaml -t 10 -A A2
 
 ### 配置文件示例
 
+```yaml
+# WebLoginBrute v0.27.2 配置文件示例
+# 复制此文件为 config.yaml 并根据需要修改
+
+# ⚠️ 切勿将真实密码、cookie等敏感信息直接写入此文件！
+# 建议将敏感信息通过安全方式管理，如环境变量或专用密钥管理系统。
+
+# 必需参数
+url: "https://redteamnotes.com/login"                    # 登录表单页面URL
+action: "https://redteamnotes.com/login/authenticate"    # 登录表单提交URL
+users: "wordlists/users.txt"                       # 用户名字典文件
+passwords: "wordlists/passwords.txt"               # 密码字典文件
+
+# 结果判断参数 (至少需要一个)
+success_string: "Welcome"
+fail_string: "Invalid credentials"
+# success_redirect: "https://redteamnotes.com/dashboard"
+# failure_redirect: "https://redteamnotes.com/login?error=1"
+
+# 可选参数
+csrf: "csrf_token"                                 # CSRF token字段名（如目标无CSRF token可省略）
+login_field: "domain"                              # 额外的登录字段名（可选）
+login_value: "example.com"                         # 额外的登录字段值（可选）
+cookie: "cookies.txt"                              # Cookie文件路径（可选）
+
+# 性能配置
+threads: 5                                         # 并发线程数 (1-100)
+timeout: 30                                        # 请求超时时间（秒）
+aggressive: "A1"                                   # 对抗级别: A0(静默) A1(标准) A2(激进) A3(极限)
+
+# 进度管理
+resume: false                                      # 是否从上次中断的地方继续
+log: "bruteforce_progress.json"                    # 进度文件路径
+
+# 输出控制
+verbose: false                                     # 详细输出模式
+dry_run: false                                     # 测试模式，不实际发送请求
+
+# 高级配置（可选）
+# max_retries: 3                                   # 最大重试次数
+# base_delay: 1.0                                  # 基础延迟时间（秒）
+# session_lifetime: 300                            # 会话生命周期（秒）
+# max_session_pool_size: 100                       # 最大会话池大小
+# enable_adaptive_rate_control: true               # 启用自适应速率控制
+# rate_adjustment_threshold: 5                     # 速率调整阈值
+
+# 安全配置（可选）
+# ip_whitelist: ["192.168.1.0/24"]                # IP白名单
+# ip_blacklist: ["10.0.0.1"]                      # IP黑名单
 ```
+
+## 高级功能
+
+### 对抗级别
+
+- **A0 (静默模式)**: 最低对抗，最快速度，适合测试环境
+- **A1 (标准模式)**: 平衡性能和隐蔽性，默认级别
+- **A2 (激进模式)**: 高对抗，较慢速度，适合有WAF的目标
+- **A3 (极限模式)**: 最高对抗，最慢速度，适合高安全性目标
+
+### 断点续扫
+
+```bash
+# 启动任务
+webloginbrute --config config.yaml --resume
+
+# 中断后继续
+webloginbrute --config config.yaml --resume
+```
+
+### 自定义成功判定
+
+```python
+# 在代码中自定义成功/失败关键字
+success_keywords = ["dashboard", "welcome", "logout", "profile"]
+failure_keywords = ["invalid", "incorrect", "failed", "error"]
+
+# 调用时传入自定义关键字
+result = self._check_login_success(
+    response, 
+    success_keywords=success_keywords,
+    failure_keywords=failure_keywords
+)
+```
+
+## 安全注意事项
+
+⚠️ **重要提醒**：
+- 仅用于授权的安全测试
+- 遵守相关法律法规
+- 保护敏感信息
+- 使用代理隐藏身份
+- 定期清理痕迹
+
+## 文档
+
+详细文档请访问：[Wiki](https://github.com/RedteamNotes/WebLoginBrute/wiki)
+
+- [快速开始](https://github.com/RedteamNotes/WebLoginBrute/wiki/Getting-Started)
+- [配置详解](https://github.com/RedteamNotes/WebLoginBrute/wiki/Configuration)
+- [高级功能](https://github.com/RedteamNotes/WebLoginBrute/wiki/Advanced-Features)
+- [故障排除](https://github.com/RedteamNotes/WebLoginBrute/wiki/Troubleshooting)
+
+## 许可证
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 免责声明
+
+本工具仅用于授权的安全测试和教育目的。使用者需自行承担使用风险，开发者不承担任何法律责任。

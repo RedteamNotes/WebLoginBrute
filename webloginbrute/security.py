@@ -151,53 +151,50 @@ class SecurityManager:
             if not real_path.startswith(current_dir):
                 raise SecurityError(f"不允许访问当前目录外的文件: {filepath}")
 
-        # 路径遍历检测 - 高优先级，必须检查
+        # 改进的路径遍历检测 - 更严格的检查
         path_traversal_patterns = [
             r"\.\./",
             r"\.\.\\",
             r"\.\.\\\\",
             r"\.\.\.",
             r"\.\.\.\.",
-            r"\.\.",  # 新增：检测单独的..
+            r"\.\.",  # 检测单独的..
+            r"\.\.\.",  # 检测三个点
+            r"\.\.\.\.",  # 检测四个点
+            r"\.\.\.\.\.",  # 检测五个点
+            r"\.\.\.\.\.\.",  # 检测六个点
+            r"\.\.\.\.\.\.\.",  # 检测七个点
+            r"\.\.\.\.\.\.\.\.",  # 检测八个点
+            r"\.\.\.\.\.\.\.\.\.",  # 检测九个点
+            r"\.\.\.\.\.\.\.\.\.\.",  # 检测十个点
         ]
 
         for pattern in path_traversal_patterns:
             if re.search(pattern, filepath, re.IGNORECASE):
                 raise SecurityError(f"路径包含遍历模式: {pattern}")
 
-        # 命令注入检测 - 只在特定场景下检查
-        command_injection_patterns = [
-            r"[;&|`$]\s*[a-zA-Z]",  # 命令分隔符后跟字母
-            r"[;&|`$]\s*[a-zA-Z]",
-        ]
+        # 检查路径中的危险字符
+        if check_dangerous_chars(filepath):
+            raise SecurityError(f"路径包含危险字符")
 
-        # 检查是否包含命令注入模式
-        for pattern in command_injection_patterns:
-            if re.search(pattern, filepath, re.IGNORECASE):
-                raise SecurityError(f"路径包含命令注入模式: {pattern}")
-
-        # 绝对路径命令检测 - 只在特定格式下检查
-        absolute_command_patterns = [
-            r"^/[a-zA-Z]*/[a-zA-Z]*/[a-zA-Z]*$",  # Unix绝对路径命令
-            r"^[A-Z]:\\[a-zA-Z]*\\[a-zA-Z]*\\[a-zA-Z]*$",  # Windows绝对路径命令
-        ]
-
-        # 只对看起来像命令的路径进行检查
-        for pattern in absolute_command_patterns:
-            if re.search(pattern, filepath, re.IGNORECASE):
-                raise SecurityError(f"路径包含绝对路径命令模式: {pattern}")
+        # 检查路径是否为空或只包含空白字符
+        if not normalized_path.strip():
+            raise SecurityError("路径不能为空或只包含空白字符")
 
         # 检查文件扩展名
         _, ext = os.path.splitext(normalized_path)
         if ext and ext.lower() not in SECURITY_CONFIG["allowed_file_extensions"]:
             raise SecurityError(f"不允许的文件扩展名: {ext}")
 
-        # 使用优化的危险字符检测
-        if check_dangerous_chars(filepath):
-            raise SecurityError(f"路径包含危险字符")
+        # 额外的安全检查：确保路径不包含可疑的绝对路径模式
+        suspicious_absolute_patterns = [
+            r"^/[a-zA-Z]*/[a-zA-Z]*/[a-zA-Z]*$",  # Unix绝对路径命令
+            r"^[A-Z]:\\[a-zA-Z]*\\[a-zA-Z]*\\[a-zA-Z]*$",  # Windows绝对路径命令
+            r"^[A-Z]:/[a-zA-Z]*/[a-zA-Z]*/[a-zA-Z]*$",  # Windows混合路径
+        ]
 
-        # 新增：检查路径是否为空或只包含空白字符
-        if not normalized_path.strip():
-            raise SecurityError("路径不能为空或只包含空白字符")
+        for pattern in suspicious_absolute_patterns:
+            if re.search(pattern, filepath, re.IGNORECASE):
+                raise SecurityError(f"路径包含可疑的绝对路径模式: {pattern}")
 
         return normalized_path

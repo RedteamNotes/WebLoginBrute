@@ -1,4 +1,4 @@
-# WebLoginBrute v0.27.1 依赖包
+# WebLoginBrute v0.27.2 依赖包
 requests>=2.28.0
 beautifulsoup4>=4.11.0
 PyYAML>=6.0

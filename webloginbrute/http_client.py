@@ -89,16 +89,26 @@ class HttpClient:
 
             except requests.exceptions.Timeout as e:
                 last_exception = NetworkError(f"请求超时: {url}")
-                logging.warning(f"请求超时 (尝试 {attempt + 1}/{self.max_retries + 1})")
+                logging.warning(f"请求超时 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}")
             except requests.exceptions.ConnectionError as e:
                 last_exception = NetworkError(f"连接错误: {url} - {e}")
-                logging.warning(f"连接错误 (尝试 {attempt + 1}/{self.max_retries + 1})")
+                logging.warning(f"连接错误 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}")
             except requests.exceptions.HTTPError as e:
                 # HTTP错误通常意味着请求已到达服务器，但因客户端或服务器错误而被拒绝
                 # 这类错误通常不应该重试，直接向上抛出
-                raise NetworkError(f"HTTP错误: {e.response.status_code} - {url}") from e
+                error_msg = f"HTTP错误: {e.response.status_code} - {url}"
+                if e.response.status_code == 429:
+                    error_msg += " (频率限制)"
+                elif e.response.status_code >= 500:
+                    error_msg += " (服务器错误)"
+                raise NetworkError(error_msg) from e
+            except requests.exceptions.RequestException as e:
+                # 其他请求异常
+                last_exception = NetworkError(f"请求异常: {url} - {e}")
+                logging.error(f"请求异常: {e}")
             except Exception as e:
-                last_exception = NetworkError(f"请求过程中发生未知错误: {e}")
+                # 未知异常
+                last_exception = NetworkError(f"未知网络错误: {url} - {e}")
                 logging.error(f"未知网络错误: {e}")
 
             if attempt < self.max_retries:

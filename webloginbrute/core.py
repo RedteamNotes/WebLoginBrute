@@ -49,50 +49,87 @@ class WebLoginBrute:
             self.executor = None
 
     def run(self) -> None:
+        """主运行方法"""
         assert self.config.url and self.config.action and self.config.users and self.config.passwords, "核心配置参数不能为空"
         logging.info("开始WebLoginBrute主流程...")
+        
         try:
-            # 1. 预解析目标域名
-            self.http.pre_resolve_targets([self.config.url, self.config.action])
-            # 2. 加载字典
-            usernames = list(load_wordlist(self.config.users, self.config))
-            passwords = list(load_wordlist(self.config.passwords, self.config))
-            logging.info(f"加载了 {len(usernames)} 个用户名和 {len(passwords)} 个密码")
-            # 3. 恢复进度
-            loaded_attempts, stats_from_file = self.state.load_progress()
-            if stats_from_file:
-                self.stats.update_from_progress(stats_from_file)
-            # 4. 设置线程池
-            self.executor = ThreadPoolExecutor(
-                max_workers=self.config.threads, thread_name_prefix="WebLoginBrute"
-            )
-            # 5. 记录开始时间
-            self.stats.stats["start_time"] = time.time()
-            
-            self._brute_force(usernames, passwords)
-            
+            self._initialize_components()
+            self._load_wordlists()
+            self._setup_executor()
+            self._execute_brute_force()
         except KeyboardInterrupt:
-            logging.info("用户中断操作，保存进度...")
-            self.state.save_progress(self.stats.get_stats())
+            self._handle_interruption()
         except Exception as e:
-            logging.error(f"运行过程中发生错误: {e}")
-            self.state.save_progress(self.stats.get_stats())
+            self._handle_error(e)
         finally:
-            # 确保线程池正确关闭
-            if self.executor:
-                try:
-                    self.executor.shutdown(wait=True)
-                    logging.debug("线程池已关闭")
-                except Exception as e:
-                    logging.warning(f"关闭线程池时发生错误: {e}")
+            self._cleanup_resources()
+
+    def _initialize_components(self):
+        """初始化组件"""
+        self.http.pre_resolve_targets([self.config.url, self.config.action])
+        logging.info("组件初始化完成")
+
+    def _load_wordlists(self):
+        """加载字典文件"""
+        usernames = list(load_wordlist(self.config.users, self.config))
+        passwords = list(load_wordlist(self.config.passwords, self.config))
+        logging.info(f"加载了 {len(usernames)} 个用户名和 {len(passwords)} 个密码")
+        
+        # 恢复进度
+        loaded_attempts, stats_from_file = self.state.load_progress()
+        if stats_from_file:
+            self.stats.update_from_progress(stats_from_file)
+        
+        self.usernames = usernames
+        self.passwords = passwords
+
+    def _setup_executor(self):
+        """设置线程池"""
+        self.executor = ThreadPoolExecutor(
+            max_workers=self.config.threads, thread_name_prefix="WebLoginBrute"
+        )
+        self.stats.stats["start_time"] = time.time()
+        logging.info("线程池设置完成")
+
+    def _execute_brute_force(self):
+        """执行暴力破解"""
+        self._brute_force(self.usernames, self.passwords)
+
+    def _handle_interruption(self):
+        """处理用户中断"""
+        logging.info("用户中断操作，保存进度...")
+        self.state.save_progress(self.stats.get_stats())
+
+    def _handle_error(self, error):
+        """处理运行错误"""
+        logging.error(f"运行过程中发生错误: {error}")
+        self.state.save_progress(self.stats.get_stats())
+
+    def _cleanup_resources(self):
+        """清理资源"""
+        # 确保线程池正确关闭
+        if self.executor:
+            try:
+                # 先取消所有未完成的任务
+                self.executor.shutdown(wait=False, cancel_futures=True)
+                logging.debug("线程池已关闭，所有未完成任务已取消")
+            except Exception as e:
+                logging.warning(f"关闭线程池时发生错误: {e}")
+            finally:
                 self.executor = None
-            
+        
+        # 确保所有资源都被释放
+        try:
             self.stats.stats["end_time"] = time.time()
             self.stats.finalize()
             self.stats.print_final_report()
             if self.success.is_set():
                 self.state.cleanup_progress_file()
             self.http.close_all_sessions()
+        except Exception as e:
+            logging.error(f"清理资源时发生错误: {e}")
+        finally:
             import logging as _logging
             _logging.shutdown()
 

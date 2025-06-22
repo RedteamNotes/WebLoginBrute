@@ -10,16 +10,34 @@ from threading import RLock
 from typing import Any, Dict, Set, Tuple, List
 import hmac
 import hashlib
+import secrets
 
 from .exceptions import ConfigurationError
 from .security import SecurityManager
 
-SECRET_KEY = os.environ.get('WEBLOGINBRUTE_SECRET', b'webloginbrute-signature-key')
-if isinstance(SECRET_KEY, str):
-    SECRET_KEY = SECRET_KEY.encode('utf-8')
+# 改进的密钥管理机制
+def get_secret_key():
+    """获取安全的密钥，优先使用环境变量，否则生成临时密钥"""
+    secret_key = os.environ.get('WEBLOGINBRUTE_SECRET')
+    if not secret_key:
+        # 生成临时密钥并记录警告
+        secret_key = secrets.token_hex(32)
+        logging.warning(
+            "未设置 WEBLOGINBRUTE_SECRET 环境变量，使用临时密钥。"
+            "建议设置环境变量以提高安全性。"
+        )
+    return secret_key.encode('utf-8') if isinstance(secret_key, str) else secret_key
+
+SECRET_KEY = get_secret_key()
 
 def sign_data(data: str, key=SECRET_KEY):
+    """使用HMAC-SHA256签名数据"""
     return hmac.new(key, data.encode(), hashlib.sha256).hexdigest()
+
+def verify_signature(data: str, signature: str, key=SECRET_KEY) -> bool:
+    """验证数据签名"""
+    expected_signature = sign_data(data, key)
+    return hmac.compare_digest(expected_signature, signature)
 
 class StateManager:
     """
@@ -39,9 +57,13 @@ class StateManager:
 
         # 使用高效的数据结构来管理已尝试的组合
         # deque 用于限制内存占用，set 用于快速查找
-        self.max_in_memory_attempts = 10000
+        self.max_in_memory_attempts = getattr(config, 'max_in_memory_attempts', 10000)
         self.attempted_combinations_deque = deque(maxlen=self.max_in_memory_attempts)
         self.attempted_combinations_set: Set[Tuple[str, str]] = set()
+        
+        # 内存管理
+        self._last_cleanup = time.time()
+        self._cleanup_interval = 300  # 5分钟清理一次
 
     def add_attempted(self, combination: Tuple[str, str]) -> None:
         """线程安全地添加一个已尝试的组合"""
@@ -54,6 +76,42 @@ class StateManager:
 
                 self.attempted_combinations_deque.append(combination)
                 self.attempted_combinations_set.add(combination)
+                
+                # 定期清理内存
+                current_time = time.time()
+                if current_time - self._last_cleanup > self._cleanup_interval:
+                    self._cleanup_memory()
+                    self._last_cleanup = current_time
+
+    def _cleanup_memory(self):
+        """清理内存，优化性能"""
+        try:
+            # 强制垃圾回收
+            import gc
+            gc.collect()
+            
+            # 检查内存使用情况
+            if hasattr(self, '_check_memory_usage'):
+                self._check_memory_usage()
+                
+            logging.debug("内存清理完成")
+        except Exception as e:
+            logging.warning(f"内存清理失败: {e}")
+
+    def _check_memory_usage(self):
+        """检查内存使用情况"""
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_mb = memory_info.rss / 1024 / 1024
+            
+            if memory_mb > 500:  # 500MB阈值
+                logging.warning(f"内存使用较高: {memory_mb:.1f}MB")
+        except ImportError:
+            pass  # psutil不可用时不检查
+        except Exception as e:
+            logging.debug(f"内存检查失败: {e}")
 
     def has_been_attempted(self, combination: Tuple[str, str]) -> bool:
         """检查一个组合是否已经被尝试过"""
@@ -72,6 +130,21 @@ class StateManager:
         try:
             with open(self.progress_file, "r", encoding="utf-8") as f:
                 progress_data = json.load(f)
+
+            # 验证签名
+            if 'data' in progress_data and 'signature' in progress_data:
+                data = progress_data['data']
+                signature = progress_data['signature']
+                
+                if not verify_signature(data, signature):
+                    logging.warning(f"进度文件签名验证失败: {self.progress_file}")
+                    return set(), {}
+                
+                # 解析实际数据
+                progress_data = json.loads(data)
+            else:
+                # 兼容旧格式（无签名）
+                logging.warning(f"进度文件格式过时，建议重新开始: {self.progress_file}")
 
             # 恢复已尝试的组合
             loaded_attempts = set()
