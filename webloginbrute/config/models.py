@@ -21,6 +21,50 @@ from ..version import __version__
 # 使用统一的版本管理
 version = __version__
 
+# 定义项目根目录作为安全边界
+PROJECT_ROOT = os.path.realpath(os.getcwd())
+
+
+def secure_path_validator(v: str, check_write: bool = False) -> str:
+    """
+    一个安全的路径验证器，防止路径操纵。
+    - 确保路径在项目根目录内。
+    - 检查文件是否存在和权限。
+    """
+    if not v:
+        return v
+
+    # 规范化路径并解析为绝对路径
+    if os.path.isabs(v):
+        absolute_path = os.path.normpath(v)
+    else:
+        absolute_path = os.path.abspath(os.path.join(PROJECT_ROOT, v))
+
+    # 核心安全检查：确保最终解析的真实路径在项目根目录下
+    if not os.path.realpath(absolute_path).startswith(PROJECT_ROOT):
+        raise ValueError(f"禁止访问项目目录之外的路径: {v}")
+
+    # 对于 log 文件这类写入路径，如果文件不存在，则检查其父目录是否可写
+    if check_write and not os.path.exists(absolute_path):
+        parent_dir = os.path.dirname(absolute_path)
+        if not os.path.isdir(parent_dir):
+            raise ValueError(f"日志文件的目录不存在: {parent_dir}")
+        if not os.access(parent_dir, os.W_OK):
+            raise ValueError(f"日志文件的目录不可写: {parent_dir}")
+        return v  # 目录可写，路径有效，返回
+
+    if not os.path.exists(absolute_path):
+        raise ValueError(f"文件不存在: {v}")
+
+    if not os.path.isfile(absolute_path):
+        raise ValueError(f"路径不是一个文件: {v}")
+    if not os.access(absolute_path, os.R_OK):
+        raise ValueError(f"文件不可读: {v}")
+    if check_write and not os.access(absolute_path, os.W_OK):
+        raise ValueError(f"文件不可写: {v}")
+
+    return v
+
 
 # 环境变量配置
 def get_env_var(key: str, default: Optional[str] = None) -> Optional[str]:
@@ -222,27 +266,17 @@ class Config(BaseModel):
             raise ValueError("URL必须使用http://或https://协议")
         return v
 
-    @field_validator("users", "passwords", mode="before")
-    def required_file_must_exist(cls, v):
-        """验证必需的文件是否存在"""
-        if not v:
-            return v
-        if not os.path.exists(v):
-            raise ValueError(f"文件不存在: {v}")
-        if not os.path.isfile(v):
-            raise ValueError(f"路径不是一个文件: {v}")
-        if not os.access(v, os.R_OK):
-            raise ValueError(f"文件不可读: {v}")
-        return v
+    @field_validator("users", "passwords", "cookie", mode="before")
+    def validate_readable_files(cls, v):
+        """应用安全路径验证器来验证只读文件"""
+        return secure_path_validator(v, check_write=False)
 
-    @field_validator("cookie", mode="before")
-    def optional_file_must_exist_if_provided(cls, v):
-        """如果提供了可选文件，验证它是否存在"""
+    @field_validator("log", mode="before")
+    def validate_writable_file(cls, v):
+        """应用安全路径验证器来验证可写文件"""
         if not v:
             return None
-        if not os.path.exists(v):
-            raise ValueError(f"Cookie文件不存在: {v}")
-        return v
+        return secure_path_validator(v, check_write=True)
 
     @field_validator("login_field", "login_value", mode="before")
     def login_field_value_length(cls, v):

@@ -1,4 +1,4 @@
-# WebLoginBrute v0.27.2 配置文件示例
+# WebLoginBrute v0.27.9 配置文件示例
 # 复制此文件为 config.yaml 并根据需要修改
 
 # ⚠️ 切勿将真实密码、cookie等敏感信息直接写入此文件！

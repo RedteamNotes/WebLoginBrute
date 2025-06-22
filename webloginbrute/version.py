@@ -5,7 +5,7 @@ WebLoginBrute 版本管理模块
 统一管理项目版本号，避免版本不一致问题
 """
 
-__version__ = "0.27.2"
+__version__ = "0.27.9"
 __author__ = "RedteamNotes"
 __description__ = "Web登录暴力破解工具"
 
