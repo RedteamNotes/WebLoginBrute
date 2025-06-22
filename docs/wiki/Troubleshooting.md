@@ -254,7 +254,8 @@ failure_string: "Invalid credentials"
 #### 解决方案
 ```yaml
 # 1. 降低对抗级别
-aggressive: "A0"  # 全速模式
+aggressive_level: 1
+aggressive: 0  # 全速模式
 
 # 2. 增加线程数
 threads: 20

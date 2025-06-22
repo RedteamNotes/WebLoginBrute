@@ -17,6 +17,10 @@
 ### 安装
 
 ```bash
+# 从PyPI安装
+pip install webloginbrute
+
+# 或从源码安装
 git clone https://github.com/RedteamNotes/WebLoginBrute.git
 cd WebLoginBrute
 pip install -r requirements.txt
@@ -29,7 +33,7 @@ pip install -r requirements.txt
 webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/login/authenticate -U users.txt -P passwords.txt -t 10 --verbose
 
 # 使用配置文件
-webloginbrute --config config.yaml -t 10 -A A2
+webloginbrute --config config.yaml -t 10 -A 2
 ```
 
 ### 配置文件示例
@@ -62,7 +66,7 @@ cookie: "cookies.txt"                              # Cookie文件路径（可选
 # 性能配置
 threads: 5                                         # 并发线程数 (1-100)
 timeout: 30                                        # 请求超时时间（秒）
-aggressive: "A1"                                   # 对抗级别: A0(静默) A1(标准) A2(激进) A3(极限)
+aggressive: 1                                   # 对抗级别: 0(静默) 1(标准) 2(激进) 3(极限)
 
 # 进度管理
 resume: false                                      # 是否从上次中断的地方继续
@@ -89,10 +93,10 @@ dry_run: false                                     # 测试模式，不实际发
 
 ### 对抗级别
 
-- **A0 (静默模式)**: 最低对抗，最快速度，适合测试环境
-- **A1 (标准模式)**: 平衡性能和隐蔽性，默认级别
-- **A2 (激进模式)**: 高对抗，较慢速度，适合有WAF的目标
-- **A3 (极限模式)**: 最高对抗，最慢速度，适合高安全性目标
+- **0 (静默模式)**: 最低对抗，最快速度，适合测试环境
+- **1 (标准模式)**: 平衡性能和隐蔽性，默认级别
+- **2 (激进模式)**: 高对抗，较慢速度，适合有WAF的目标
+- **3 (极限模式)**: 最高对抗，最慢速度，适合高安全性目标
 
 ### 断点续扫
 
@@ -128,6 +132,67 @@ result = self._check_login_success(
 - [高级功能](https://github.com/RedteamNotes/WebLoginBrute/wiki/Advanced-Features)
 - [故障排除](https://github.com/RedteamNotes/WebLoginBrute/wiki/Troubleshooting)
 
-## 许可证和免责声明
+## 开发
 
-本工具仅用于授权的安全测试和教育目的。使用者需自行承担使用风险，开发者不承担任何法律责任。MIT License - 详见 [LICENSE](LICENSE) 文件
+### 环境设置
+
+```bash
+# 运行开发环境设置脚本
+python setup_dev.py
+
+# 或手动设置
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# 或 venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+```
+
+### 运行测试
+
+```bash
+# 运行所有测试
+python run_tests.py
+
+# 或使用pytest
+pytest tests/
+
+# 生成覆盖率报告
+coverage run -m pytest tests/
+coverage report
+coverage html
+```
+
+### 代码质量
+
+```bash
+# 代码格式化
+black webloginbrute tests/
+
+# 导入排序
+isort webloginbrute tests/
+
+# 代码检查
+flake8 webloginbrute tests/
+
+# 安全检查
+bandit -r webloginbrute/
+
+# 类型检查
+mypy webloginbrute/
+```
+
+### 贡献指南
+
+1. Fork项目
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建Pull Request
+
+## 许可证
+
+本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 免责声明
+
+本工具仅用于授权的安全测试和教育目的。使用者需要确保在合法授权的情况下使用，作者不承担任何法律责任。

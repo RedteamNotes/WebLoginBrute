@@ -46,7 +46,7 @@ failure_redirect: "https://test.example.com/login"
 users: "users.txt"
 passwords: "passwords.txt"
 threads: 5
-aggressive: "A1"
+aggressive: 0  # 快速模式
 ```
 
 4. **运行测试**
@@ -56,7 +56,7 @@ webloginbrute --config config.yaml --verbose
 
 #### 预期结果
 ```
-[INFO] 对抗级别: A1 - 低对抗模式
+[INFO] 对抗级别: 0 - 快速模式
 [INFO] 开始爆破任务...
 [INFO] 尝试登录：admin:password
 [INFO] 尝试登录：admin:admin123
@@ -182,7 +182,7 @@ done
 #### 配置
 ```yaml
 # 启用会话池
-aggressive: "A2"
+aggressive: 2
 enable_session_pool: true
 session_lifetime: 300
 
@@ -215,10 +215,10 @@ failure_redirect: "https://company.com/login"
 users: "common_users.txt"
 passwords: "top_1000_passwords.txt"
 threads: 10
-aggressive: "A0"  # 快速模式
+aggressive: 0  # 快速模式
 
 # 第二阶段：深度测试
-aggressive: "A2"  # 中对抗模式
+aggressive: 2  # 中对抗模式
 threads: 5
 proxy: "http://proxy.company.com:8080"
 enable_session_pool: true
@@ -250,7 +250,7 @@ failure_redirect: "https://shop.example.com/login"
 users: "customer_emails.txt"
 passwords: "common_passwords.txt"
 threads: 3
-aggressive: "A3"  # 高对抗模式
+aggressive: 3  # 高对抗模式
 proxy: "http://rotating-proxy.com:8080"
 min_delay: 3.0
 max_delay: 15.0
@@ -284,7 +284,7 @@ failure_redirect: "http://internal.test.com/login"
 users: "internal_users.txt"
 passwords: "internal_passwords.txt"
 threads: 20
-aggressive: "A0"  # 全速模式
+aggressive: 0  # 全速模式
 enable_smart_delay: false
 enable_session_pool: false
 ```
@@ -343,7 +343,7 @@ curl -s "https://target.com/login" | grep -i "captcha"
 ```yaml
 # 高性能配置
 threads: 20                    # 高并发
-aggressive: "A0"         # 无延迟
+aggressive: 0         # 无延迟
 enable_smart_delay: false      # 关闭智能延迟
 enable_session_pool: false     # 关闭会话池
 ```
@@ -352,7 +352,7 @@ enable_session_pool: false     # 关闭会话池
 ```yaml
 # 高隐蔽配置
 threads: 3                     # 低并发
-aggressive: "A3"         # 高对抗
+aggressive: 3         # 高对抗
 proxy: "http://proxy.com:8080" # 使用代理
 min_delay: 5.0                 # 长延迟
 max_delay: 20.0                # 更长延迟
@@ -376,57 +376,7 @@ grep "captcha" attack.log
 # 根据检测情况调整配置
 if grep -q "rate limit" attack.log; then
     # 降低级别
-    sed -i 's/aggressive: "A1"/aggressive: "A2"/' config.yaml
+    sed -i 's/aggressive: 2/aggressive: 3/' config.yaml
     sed -i 's/threads: 10/threads: 5/' config.yaml
 fi
 ```
-
-### 4. 结果分析
-
-#### 成功凭据处理
-```bash
-# 提取成功凭据
-grep "SUCCESS" attack.log | cut -d' ' -f4 > successful_credentials.txt
-
-# 验证凭据
-while read cred; do
-    username=$(echo $cred | cut -d':' -f1)
-    password=$(echo $cred | cut -d':' -f2)
-    echo "验证: $username:$password"
-    # 执行验证逻辑
-done < successful_credentials.txt
-```
-
-#### 统计分析
-```bash
-# 生成统计报告
-python3 -c "
-import json
-with open('bruteforce_progress.json') as f:
-    data = json.load(f)
-print(f'总尝试: {data["total_attempts"]}')
-print(f'成功率: {data["success_rate"]:.2f}%')
-print(f'平均速度: {data["avg_speed"]:.2f} 次/秒')
-"
-```
-
-## ⚠️ 注意事项
-
-### 1. 法律合规
-- 确保获得授权
-- 遵守相关法规
-- 保护敏感信息
-
-### 2. 技术风险
-- 避免过度消耗资源
-- 监控系统状态
-- 准备应急方案
-
-### 3. 安全考虑
-- 使用代理隐藏身份
-- 定期更换IP
-- 清理痕迹
-
----
-
-**相关链接**: [快速开始](Getting-Started) | [配置说明](Configuration) | [对抗级别](Aggression-Levels) 

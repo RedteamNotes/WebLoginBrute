@@ -10,8 +10,8 @@
 **示例 `config.yaml`:**
 ```yaml
 # --- 核心配置 (必需) ---
-url: "https://redteamnotes.com/login"
-action: "https://redteamnotes.com/login/authenticate"
+url: "https://target.com/login"
+action: "https://target.com/login/authenticate"
 users: "wordlists/users.txt"
 passwords: "wordlists/passwords.txt"
 
@@ -26,10 +26,10 @@ timeout: 20
 
 # --- 功能选项 ---
 csrf: "csrf_token"
-resume: true
+resume: false
 verbose: true
-aggressive: "A2"
-log: "my_task_progress.json"
+aggressive: 2
+log: "my_progress.json"
 ```
 
 **使用方法:**
@@ -83,7 +83,7 @@ webloginbrute \
 | :--- | :--- | :--- | :--- |
 | `threads` | `-t`, `--threads` | `int` | 并发线程数。默认为 `5`。 |
 | `timeout` | `-T`, `--timeout` | `int` | HTTP 请求超时时间（秒）。默认为 `30`。 |
-| `aggressive` | `-A`, `--aggressive` | `string` | 对抗级别 (`A0`, `A1`, `A2`, `A3`)。默认为 `A1`。 |
+| `aggressive` | `-A`, `--aggressive` | `int` | 对抗级别 (0, 1, 2, 3)。默认为 1。 |
 
 ### 功能选项 (Features)
 
@@ -120,7 +120,7 @@ webloginbrute \
 | `--threads` | `-t` | 并发线程数 | 5 | `-t 10` |
 | `--resume` | `-r` | 断点续扫 | False | `-r` |
 | `--log` | `-l` | 进度文件路径 | bruteforce_progress.json | `-l state.json` |
-| `--aggressive` | `-A` | 对抗级别 | A1 | `-A A2` |
+| `--aggressive` | `-A` | 对抗级别 | 1 | `-A 2` |
 | `--dry-run` | 无 | 测试模式 | False | `--dry-run` |
 | `--verbose` | `-w` | 详细输出 | False | `-w` |
 | `--version` | `-V` | 显示版本 | 无 | `-V` |
@@ -193,13 +193,13 @@ HTTP请求超时时间（秒）。网络较慢时可适当增加。
 #### `--aggressive` / `-A`
 对抗级别，影响请求频率和隐蔽性：
 
-- **A0 (静默模式)**: 最低对抗，适合测试环境
-- **A1 (标准模式)**: 默认级别，平衡性能和隐蔽性
-- **A2 (激进模式)**: 高对抗，适合有防护的目标
-- **A3 (极限模式)**: 最高对抗，适合高安全性目标
+- **0 (静默模式)**: 最低对抗，适合测试环境
+- **1 (标准模式)**: 默认级别，平衡性能和隐蔽性
+- **2 (激进模式)**: 高对抗，适合有防护的目标
+- **3 (极限模式)**: 最高对抗，适合高安全性目标
 
 ```bash
--A A2  # 使用激进模式
+-A 2  # 使用激进模式
 ```
 
 ### 进度管理
@@ -246,7 +246,7 @@ users: "wordlists/users.txt"
 passwords: "wordlists/passwords.txt"
 csrf: "csrf_token"
 threads: 10
-aggressive: "A2"
+aggressive: 2
 verbose: true
 resume: false
 log: "my_progress.json"
@@ -350,7 +350,7 @@ threads: 15
 timeout: 20
 resume: true
 verbose: true
-aggressive: "A2"
+aggressive: 2
 ```
 
 ### 3. 运行
@@ -414,6 +414,5 @@ webloginbrute \
 | `resume` | `--resume` | `boolean` | 设置为 `true` 或在命令行使用此标志，以从上次中断处恢复。 |
 | `log` | `--log` | `string` | 指定进度文件的路径。默认为 `bruteforce_progress.json`。 |
 | `dry_run` | `--dry-run` | `boolean` | 测试模式。设置为 `true` 或在命令行使用此标志，将不会实际发送攻击请求。 |
-| `aggressive` | `--aggressive` | `string` | 对抗级别 (`A0`, `A1`, `A2`, `A3`)。默认为 `A1`。 |
-| `verbose` | `--verbose` | `boolean` | 启用详细日志输出。 |
-| `ip_whitelist` | *N/A* | `array` | (仅YAML) IP白名单，支持CIDR。 |
+| `aggressive` | `--aggressive` | `int` | 对抗级别 (0, 1, 2, 3)。默认为 1。 |
+| `verbose` | `--verbose` | `boolean`

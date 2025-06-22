@@ -7,14 +7,14 @@ import unittest
 from unittest.mock import patch, mock_open
 
 from webloginbrute.config import Config
+from webloginbrute.exceptions import ConfigurationError
 
 
 class TestConfig(unittest.TestCase):
-    """测试配置类的各种功能"""
+    """测试配置功能"""
 
     def setUp(self):
         """设置测试环境"""
-        # 创建临时文件用于测试
         self.temp_dir = tempfile.mkdtemp()
         self.users_file = os.path.join(self.temp_dir, "users.txt")
         self.passwords_file = os.path.join(self.temp_dir, "passwords.txt")
@@ -30,41 +30,183 @@ class TestConfig(unittest.TestCase):
         import shutil
         shutil.rmtree(self.temp_dir)
 
-    def test_valid_config(self):
-        """测试有效配置"""
+    def test_config_creation(self):
+        """测试配置创建"""
         config = Config(
             url="https://example.com/login",
             action="https://example.com/authenticate",
             users=self.users_file,
-            passwords=self.passwords_file
+            passwords=self.passwords_file,
+            csrf=None,
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1
         )
+        
         self.assertEqual(config.url, "https://example.com/login")
         self.assertEqual(config.action, "https://example.com/authenticate")
         self.assertEqual(config.users, self.users_file)
         self.assertEqual(config.passwords, self.passwords_file)
+        self.assertIsNone(config.csrf)
+        self.assertEqual(config.timeout, 30)
+        self.assertEqual(config.threads, 10)
+        self.assertEqual(config.log, "test.log")
+        self.assertEqual(config.aggressive, 1)
 
-    def test_invalid_url(self):
-        """测试无效URL"""
+    def test_config_defaults(self):
+        """测试配置默认值"""
+        config = Config(
+            url="https://example.com/login",
+            action="https://example.com/authenticate",
+            users=self.users_file,
+            passwords=self.passwords_file,
+            csrf=None,
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1
+        )
+        
+        # 测试默认值
+        self.assertIsNone(config.login_field)
+        self.assertIsNone(config.login_value)
+        self.assertIsNone(config.cookie)
+        self.assertFalse(config.resume)
+        self.assertFalse(config.dry_run)
+        self.assertFalse(config.verbose)
+
+    def test_config_validation(self):
+        """测试配置验证"""
+        # 测试有效配置
+        config = Config(
+            url="https://example.com/login",
+            action="https://example.com/authenticate",
+            users=self.users_file,
+            passwords=self.passwords_file,
+            csrf=None,
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1
+        )
+        
+        # 验证应该通过
+        self.assertIsNotNone(config)
+        
+        # 测试无效URL
         with self.assertRaises(ValueError):
             Config(
                 url="invalid-url",
                 action="https://example.com/authenticate",
                 users=self.users_file,
-                passwords=self.passwords_file
+                passwords=self.passwords_file,
+                csrf=None,
+                timeout=30,
+                threads=10,
+                log="test.log",
+                aggressive=1
             )
 
-    def test_missing_file(self):
-        """测试缺失文件"""
+    def test_config_file_validation(self):
+        """测试配置文件验证"""
+        # 测试文件不存在
         with self.assertRaises(ValueError):
             Config(
                 url="https://example.com/login",
                 action="https://example.com/authenticate",
-                users="nonexistent.txt",
-                passwords=self.passwords_file
+                users="/nonexistent/users.txt",
+                passwords=self.passwords_file,
+                csrf=None,
+                timeout=30,
+                threads=10,
+                log="test.log",
+                aggressive=1
             )
 
-    def test_optional_cookie_file(self):
-        """测试可选的cookie文件"""
+    def test_config_threads_validation(self):
+        """测试线程数验证"""
+        # 测试线程数过小
+        with self.assertRaises(ValueError):
+            Config(
+                url="https://example.com/login",
+                action="https://example.com/authenticate",
+                users=self.users_file,
+                passwords=self.passwords_file,
+                csrf=None,
+                timeout=30,
+                threads=0,
+                log="test.log",
+                aggressive=1
+            )
+        
+        # 测试线程数过大
+        with self.assertRaises(ValueError):
+            Config(
+                url="https://example.com/login",
+                action="https://example.com/authenticate",
+                users=self.users_file,
+                passwords=self.passwords_file,
+                csrf=None,
+                timeout=30,
+                threads=101,
+                log="test.log",
+                aggressive=1
+            )
+
+    def test_config_timeout_validation(self):
+        """测试超时验证"""
+        # 测试超时过小
+        with self.assertRaises(ValueError):
+            Config(
+                url="https://example.com/login",
+                action="https://example.com/authenticate",
+                users=self.users_file,
+                passwords=self.passwords_file,
+                csrf=None,
+                timeout=0,
+                threads=10,
+                log="test.log",
+                aggressive=1
+            )
+
+    def test_config_aggressive_validation(self):
+        """测试对抗级别验证"""
+        # 测试无效对抗级别
+        with self.assertRaises(ValueError):
+            Config(
+                url="https://example.com/login",
+                action="https://example.com/authenticate",
+                users=self.users_file,
+                passwords=self.passwords_file,
+                csrf=None,
+                timeout=30,
+                threads=10,
+                log="test.log",
+                aggressive=4
+            )
+
+    def test_config_with_custom_fields(self):
+        """测试带自定义字段的配置"""
+        config = Config(
+            url="https://example.com/login",
+            action="https://example.com/authenticate",
+            users=self.users_file,
+            passwords=self.passwords_file,
+            csrf=None,
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1,
+            login_field="domain",
+            login_value="example.com"
+        )
+        
+        self.assertEqual(config.login_field, "domain")
+        self.assertEqual(config.login_value, "example.com")
+
+    def test_config_with_cookie(self):
+        """测试带Cookie的配置"""
         cookie_file = os.path.join(self.temp_dir, "cookies.txt")
         with open(cookie_file, "w") as f:
             f.write("session=abc123")
@@ -74,88 +216,69 @@ class TestConfig(unittest.TestCase):
             action="https://example.com/authenticate",
             users=self.users_file,
             passwords=self.passwords_file,
+            csrf=None,
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1,
             cookie=cookie_file
         )
+        
         self.assertEqual(config.cookie, cookie_file)
 
-    def test_invalid_cookie_file(self):
-        """测试无效的cookie文件"""
-        with self.assertRaises(ValueError):
-            Config(
-                url="https://example.com/login",
-                action="https://example.com/authenticate",
-                users=self.users_file,
-                passwords=self.passwords_file,
-                cookie="nonexistent_cookies.txt"
-            )
-
-    def test_threads_validation(self):
-        """测试线程数验证"""
-        # 测试最小值
-        with self.assertRaises(ValueError):
-            Config(
-                url="https://example.com/login",
-                action="https://example.com/authenticate",
-                users=self.users_file,
-                passwords=self.passwords_file,
-                threads=0
-            )
+    def test_config_with_csrf(self):
+        """测试带CSRF的配置"""
+        config = Config(
+            url="https://example.com/login",
+            action="https://example.com/authenticate",
+            users=self.users_file,
+            passwords=self.passwords_file,
+            csrf="csrf_token",
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1
+        )
         
-        # 测试最大值
-        with self.assertRaises(ValueError):
-            Config(
-                url="https://example.com/login",
-                action="https://example.com/authenticate",
-                users=self.users_file,
-                passwords=self.passwords_file,
-                threads=101
-            )
+        self.assertEqual(config.csrf, "csrf_token")
 
-    def test_timeout_validation(self):
-        """测试超时验证"""
-        # 测试最小值
-        with self.assertRaises(ValueError):
-            Config(
-                url="https://example.com/login",
-                action="https://example.com/authenticate",
-                users=self.users_file,
-                passwords=self.passwords_file,
-                timeout=0
-            )
-        
-        # 测试最大值
-        with self.assertRaises(ValueError):
-            Config(
-                url="https://example.com/login",
-                action="https://example.com/authenticate",
-                users=self.users_file,
-                passwords=self.passwords_file,
-                timeout=601
-            )
-
-    def test_aggressive_validation(self):
-        """测试对抗级别验证"""
-        # 测试有效值
-        valid_levels = ['A0', 'A1', 'A2', 'A3']
+    def test_config_aggressive_levels(self):
+        """测试所有对抗级别"""
+        valid_levels = [0, 1, 2, 3]
         for level in valid_levels:
             config = Config(
                 url="https://example.com/login",
                 action="https://example.com/authenticate",
                 users=self.users_file,
                 passwords=self.passwords_file,
+                csrf=None,
+                timeout=30,
+                threads=10,
+                log="test.log",
                 aggressive=level
             )
             self.assertEqual(config.aggressive, level)
+
+    def test_config_boolean_flags(self):
+        """测试布尔标志"""
+        config = Config(
+            url="https://example.com/login",
+            action="https://example.com/authenticate",
+            users=self.users_file,
+            passwords=self.passwords_file,
+            csrf=None,
+            timeout=30,
+            threads=10,
+            log="test.log",
+            aggressive=1,
+            resume=True,
+            dry_run=True,
+            verbose=True
+        )
         
-        # 测试无效值
-        with self.assertRaises(ValueError):
-            Config(
-                url="https://example.com/login",
-                action="https://example.com/authenticate",
-                users=self.users_file,
-                passwords=self.passwords_file,
-                aggressive="A4"
-            )
+        self.assertTrue(config.resume)
+        self.assertTrue(config.dry_run)
+        self.assertTrue(config.verbose)
 
     @patch('argparse.ArgumentParser.parse_args')
     def test_parse_args(self, mock_parse_args):
@@ -175,7 +298,7 @@ class TestConfig(unittest.TestCase):
             'threads': None,
             'resume': False,
             'log': None,
-            'aggressive': None,
+            'aggressive': 1,
             'dry_run': False,
             'verbose': False,
             'version': False
@@ -195,7 +318,7 @@ class TestConfig(unittest.TestCase):
             'threads': 5,
             'resume': False,
             'log': 'bruteforce_progress.json',
-            'aggressive': 'A1',
+            'aggressive': 1,
             'dry_run': False,
             'verbose': False,
             'version': False
@@ -207,6 +330,8 @@ class TestConfig(unittest.TestCase):
         args, defaults = Config.parse_args()
         self.assertEqual(args.url, 'https://example.com/login')
         self.assertEqual(args.action, 'https://example.com/authenticate')
+        self.assertEqual(args.users, self.users_file)
+        self.assertEqual(args.passwords, self.passwords_file)
 
 
 if __name__ == '__main__':

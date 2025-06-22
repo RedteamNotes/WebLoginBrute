@@ -116,7 +116,7 @@ my_settings = {
     "threads": 8,
     "timeout": 15,
     "verbose": True,
-    "aggressive": "A1"
+    "aggressive": 1
     # 你可以在这里添加任何其他有效的配置项
 }
 

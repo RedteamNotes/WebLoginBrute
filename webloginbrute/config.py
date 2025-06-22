@@ -13,7 +13,7 @@ from .exceptions import ConfigurationError
 try:
     version = importlib.metadata.version("webloginbrute")
 except importlib.metadata.PackageNotFoundError:
-    version = "0.27.1"  # 开发环境fallback
+    version = "0.27.2"  # 开发环境fallback
 
 class Config(BaseModel):
     """
@@ -31,7 +31,7 @@ class Config(BaseModel):
     threads: int = Field(5, ge=1, le=100, description="并发线程数")
     resume: bool = False
     log: str = Field('bruteforce_progress.json', description="进度文件路径")
-    aggressive: str = Field('A1', regex=r'^A[0-3]$', description="对抗级别")
+    aggressive: int = Field(1, ge=0, le=3, description="对抗级别: 0(静默) 1(标准) 2(激进) 3(极限)")
     dry_run: bool = False
     verbose: bool = False
 
@@ -73,7 +73,7 @@ class Config(BaseModel):
         parser.add_argument('-t', '--threads', type=int, help='并发线程数')
         parser.add_argument('-r', '--resume', action='store_true', help='从上次中断的地方继续')
         parser.add_argument('-l', '--log', help='进度文件路径')
-        parser.add_argument('-A', '--aggressive', choices=['A0', 'A1', 'A2', 'A3'], help='对抗级别')
+        parser.add_argument('-A', '--aggressive', type=int, choices=[0, 1, 2, 3], help='对抗级别: 0(静默) 1(标准) 2(激进) 3(极限)')
         parser.add_argument('--dry-run', action='store_true', help='测试模式，不实际发送请求')
         parser.add_argument('--verbose', action='store_true', help='详细输出')
         parser.add_argument('-V', '--version', action='version', version=f'%(prog)s {version}')
@@ -86,7 +86,7 @@ class Config(BaseModel):
         parser.add_argument('--csrf-field', dest='csrf', help='CSRF token字段名 (别名)')
         parser.add_argument('--cookie-file', dest='cookie', help='Cookie文件路径 (别名)')
         parser.add_argument('--progress-file', dest='log', help='进度文件路径 (别名)')
-        parser.add_argument('--aggression-level', dest='aggressive', choices=['A0', 'A1', 'A2', 'A3'], help='对抗级别 (别名)')
+        parser.add_argument('--aggression-level', dest='aggressive', type=int, choices=[0, 1, 2, 3], help='对抗级别: 0(静默) 1(标准) 2(激进) 3(极限) (别名)')
         
         defaults = {opt.dest: opt.default for opt in parser._actions}
         args = parser.parse_args()
