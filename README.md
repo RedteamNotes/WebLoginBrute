@@ -1,6 +1,8 @@
-# WebLoginBrute
+# WebLoginBrute 0.27
 
-一个专业的Web登录暴力破解工具，具有高级安全特性和性能优化功能。
+为红队行动设计的Web登录暴力破解工具，具备动态CSRF Token刷新、多线程并发、断点续扫与进度保存功能；支持高并发操作、智能重试机制和多级对抗策略。
+
+（开发中，不建议使用，csrfbrute.py 是精简化稳定版本）
 
 ## ✨ 特性
 
@@ -38,35 +40,6 @@ webloginbrute --config config.yaml
 
 # 详细输出模式
 webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/auth -U users.txt -P passwords.txt --verbose
-```
-
-### 环境变量配置
-
-创建 `.env` 文件以提高安全性：
-
-```bash
-# 复制示例文件
-cp env.example .env
-
-# 编辑配置
-nano .env
-```
-
-主要环境变量：
-
-```bash
-# 安全配置
-WEBLOGINBRUTE_SECRET=your-super-secret-key-here
-WEBLOGINBRUTE_ENCRYPTION_KEY=your-32-character-encryption-key
-
-# 性能配置
-WEBLOGINBRUTE_TIMEOUT=30
-WEBLOGINBRUTE_THREADS=10
-WEBLOGINBRUTE_MAX_MEMORY_MB=1024
-
-# 安全级别
-WEBLOGINBRUTE_SECURITY_LEVEL=standard
-WEBLOGINBRUTE_ENABLE_HEALTH_CHECK=true
 ```
 
 ## 📚 文档
@@ -112,149 +85,6 @@ WEBLOGINBRUTE_ENABLE_HEALTH_CHECK=true
 | high | 高安全级别 | 严格安全检查，适合生产环境 |
 | paranoid | 偏执安全级别 | 最高安全检查，可能影响性能 |
 
-## 📁 项目结构
+## ⚠️ 免责声明和许可证
 
-```
-WebLoginBrute/
-├── webloginbrute/          # 核心代码
-│   ├── __init__.py
-│   ├── cli.py              # 命令行界面
-│   ├── config.py           # 配置管理
-│   ├── core.py             # 核心引擎
-│   ├── http_client.py      # HTTP客户端
-│   ├── health_check.py     # 健康检查
-│   ├── logger.py           # 日志管理
-│   ├── performance_monitor.py  # 性能监控
-│   ├── memory_manager.py   # 内存管理
-│   ├── session_manager.py  # 会话管理
-│   └── security.py         # 安全功能
-├── tests/                  # 测试文件
-├── docs/                   # 文档
-├── scripts/                # 脚本工具
-├── examples/               # 示例文件
-├── wordlists/              # 字典文件
-├── reports/                # 报告输出
-├── env.example             # 环境变量示例
-├── config.example.yaml     # 配置文件示例
-└── README.md
-```
-
-## 🔒 安全特性
-
-- **环境变量配置**: 支持通过环境变量设置敏感配置
-- **健康检查**: 实时监控系统资源和网络状态
-- **会话轮换**: 智能会话管理和连接池优化
-- **内存管理**: 自动内存清理和资源监控
-- **安全级别**: 多级安全控制机制
-- **审计日志**: 完整的操作审计记录
-
-## 🚀 高级功能
-
-### 会话管理
-
-```bash
-# 启用会话轮换
-webloginbrute --session-rotation-interval 300 --session-lifetime 1800
-
-# 自定义轮换策略
-webloginbrute --rotation-strategy request_count
-```
-
-### 内存管理
-
-```bash
-# 设置内存限制
-webloginbrute --max-memory 2048 --memory-warning-threshold 80
-
-# 自动内存清理
-webloginbrute --memory-cleanup-interval 60
-```
-
-### 健康检查
-
-```bash
-# 启用健康检查
-webloginbrute --enable-health-check
-
-# 禁用网络验证
-webloginbrute --disable-network-validation
-```
-
-## 📊 输出示例
-
-### 进度文件 (progress.json)
-
-```json
-{
-  "start_time": "2024-01-01T12:00:00",
-  "total_combinations": 1000,
-  "current_position": 500,
-  "successful_logins": [
-    {
-      "username": "admin",
-      "password": "password",
-      "timestamp": "2024-01-01T12:30:00"
-    }
-  ],
-  "failed_attempts": 499,
-  "errors": []
-}
-```
-
-### 日志文件
-
-- `webloginbrute.log`: 主日志文件
-- `audit.log`: 审计日志
-- `performance.log`: 性能日志
-- `progress.json`: 进度文件
-
-## 🔧 开发
-
-### 运行测试
-
-```bash
-# 运行所有测试
-python scripts/run_tests.py
-
-# 运行单元测试
-python -m unittest discover tests -v
-
-# 代码检查
-python -m flake8 webloginbrute tests
-
-# 安全检查
-python -m bandit -r webloginbrute
-```
-
-### 贡献
-
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## ⚠️ 免责声明
-
-本工具仅用于授权的安全测试和教育目的。使用者必须：
-
-- 仅在获得明确授权的目标上进行测试
-- 遵守相关法律法规
-- 承担使用本工具的所有责任
-
-作者不对任何滥用行为承担责任。
-
-## 🤝 支持
-
-- 📖 [文档](docs/)
-- 🐛 [报告问题](https://github.com/RedteamNotes/WebLoginBrute/issues)
-- 💬 [讨论](https://github.com/RedteamNotes/WebLoginBrute/discussions)
-- 📧 邮箱: contact@redteamnotes.com
-
----
-
-**WebLoginBrute** - 专业的Web登录安全测试工具
+本工具仅用于授权的安全测试和教育目的。使用者必须：仅在获得明确授权的目标上进行测试、遵守相关法律法规、承担使用本工具的所有责任，作者不对任何滥用行为承担责任。本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
