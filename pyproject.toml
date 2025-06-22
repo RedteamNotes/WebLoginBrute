@@ -45,4 +45,11 @@ line_length = 88
 
 [tool.flake8]
 max-line-length = 88
-extend-ignore = ["E203", "W503"] 
+extend-ignore = ["E203", "W503"]
+
+# 版本管理配置
+[tool.hatch.build.targets.wheel]
+packages = ["webloginbrute"]
+
+[tool.hatch.build.hooks.custom]
+path = "webloginbrute/version.py" 

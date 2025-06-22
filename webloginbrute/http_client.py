@@ -15,6 +15,8 @@ from requests import Session
 
 from .constants import USER_AGENTS, BROWSER_HEADERS
 from .exceptions import NetworkError
+from .session_manager import get_session_rotator, SessionConfig
+from .memory_manager import get_memory_manager
 
 class HttpClient:
     """
@@ -28,16 +30,25 @@ class HttpClient:
         self._dns_cache: Dict[str, Optional[str]] = {}
         self._dns_cache_lock = Lock()
         
-        # 会话池
-        self._session_pool: Dict[str, Dict[str, Any]] = {}
-        self._session_pool_lock = Lock()
-        
         # 重试配置
         self.max_retries = getattr(config, 'max_retries', 3)
         self.base_delay = getattr(config, 'base_delay', 1.0)
         
-        self.session_lifetime = getattr(self.config, 'session_lifetime', 300)
-        self.max_session_pool_size = getattr(self.config, 'max_session_pool_size', 100)
+        # 获取会话轮换器和内存管理器
+        self.session_rotator = get_session_rotator()
+        self.memory_manager = get_memory_manager()
+        
+        # 会话配置
+        session_config = SessionConfig(
+            rotation_interval=getattr(config, 'session_rotation_interval', 300),
+            session_lifetime=getattr(config, 'session_lifetime', 600),
+            max_session_pool_size=getattr(config, 'max_session_pool_size', 100),
+            enable_rotation=getattr(config, 'enable_session_rotation', True),
+            rotation_strategy=getattr(config, 'rotation_strategy', 'time')
+        )
+        
+        # 初始化会话轮换器
+        self.session_rotator.config = session_config
 
     def get(self, url: str, headers: Optional[Dict] = None, **kwargs) -> requests.Response:
         """执行带重试的GET请求"""
@@ -63,8 +74,9 @@ class HttpClient:
         # 使用带缓存的DNS解析获取IP地址作为会话键
         session_key = f"{parsed_url.scheme}://{hostname}:{parsed_url.port or 80}"
 
-        # 从会话池获取或创建一个会话
-        session = self._get_session(session_key)
+        # 从会话轮换器获取会话
+        cookie_file = getattr(self.config, 'cookie', None)
+        session = self.session_rotator.get_session(session_key, cookie_file)
         
         # 准备请求头
         headers = kwargs.get('headers', {}).copy()
@@ -78,38 +90,51 @@ class HttpClient:
 
         for attempt in range(self.max_retries + 1):
             try:
-                response = session.request(method, url, **kwargs)
-                response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
-                
-                # 验证响应头的安全性
-                if not self._validate_response_headers(response):
-                    raise NetworkError("响应头安全检查失败")
-                
-                return response
+                # 检查内存使用
+                with self.memory_manager.memory_context():
+                    response = session.request(method, url, **kwargs)
+                    response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
+                    
+                    # 验证响应头的安全性
+                    if not self._validate_response_headers(response):
+                        raise NetworkError("响应头安全检查失败")
+                    
+                    # 记录成功请求
+                    self.session_rotator.record_request(session_key, success=True)
+                    
+                    return response
 
             except requests.exceptions.Timeout as e:
                 last_exception = NetworkError(f"请求超时: {url}")
                 logging.warning(f"请求超时 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}")
+                self.session_rotator.record_request(session_key, success=False)
             except requests.exceptions.ConnectionError as e:
                 last_exception = NetworkError(f"连接错误: {url} - {e}")
                 logging.warning(f"连接错误 (尝试 {attempt + 1}/{self.max_retries + 1}): {url}")
+                self.session_rotator.record_request(session_key, success=False)
             except requests.exceptions.HTTPError as e:
                 # HTTP错误通常意味着请求已到达服务器，但因客户端或服务器错误而被拒绝
                 # 这类错误通常不应该重试，直接向上抛出
                 error_msg = f"HTTP错误: {e.response.status_code} - {url}"
                 if e.response.status_code == 429:
                     error_msg += " (频率限制)"
+                    # 频率限制时强制轮换会话
+                    self.session_rotator.force_rotate_session(session_key, "频率限制")
                 elif e.response.status_code >= 500:
                     error_msg += " (服务器错误)"
+                
+                self.session_rotator.record_request(session_key, success=False)
                 raise NetworkError(error_msg) from e
             except requests.exceptions.RequestException as e:
                 # 其他请求异常
                 last_exception = NetworkError(f"请求异常: {url} - {e}")
                 logging.error(f"请求异常: {e}")
+                self.session_rotator.record_request(session_key, success=False)
             except Exception as e:
                 # 未知异常
                 last_exception = NetworkError(f"未知网络错误: {url} - {e}")
                 logging.error(f"未知网络错误: {e}")
+                self.session_rotator.record_request(session_key, success=False)
 
             if attempt < self.max_retries:
                 delay = self.base_delay * (2 ** attempt) + random.uniform(0, 0.5)
@@ -117,50 +142,6 @@ class HttpClient:
                 time.sleep(delay)
         
         raise last_exception if last_exception else NetworkError("请求失败，已达最大重试次数")
-
-    def _get_session(self, session_key: str) -> Session:
-        """从会话池中获取或创建会话"""
-        with self._session_pool_lock:
-            if session_key in self._session_pool:
-                session_info = self._session_pool[session_key]
-                if time.time() - session_info['created_time'] < self.session_lifetime:
-                    return session_info['session']
-                else:
-                    try:
-                        session_info['session'].close()
-                    except Exception:
-                        pass
-                    del self._session_pool[session_key]
-
-            # 创建新会话
-            session = requests.Session()
-            session.max_redirects = 5
-            
-            # 加载cookies
-            cookie_file = getattr(self.config, 'cookie', None)
-            if cookie_file:
-                try:
-                    jar = cookielib.MozillaCookieJar(cookie_file)
-                    jar.load(ignore_discard=True, ignore_expires=True)
-                    session.cookies.update(jar)
-                except Exception as e:
-                    logging.warning(f"加载Cookie文件 '{cookie_file}' 失败: {e}")
-            
-            self._session_pool[session_key] = {
-                'session': session,
-                'created_time': time.time()
-            }
-            
-            # 限制会话池大小
-            if len(self._session_pool) > self.max_session_pool_size:
-                oldest_key = min(self._session_pool.keys(), key=lambda k: self._session_pool[k]['created_time'])
-                try:
-                    self._session_pool[oldest_key]['session'].close()
-                except Exception:
-                    pass
-                del self._session_pool[oldest_key]
-            
-            return session
 
     def _validate_response_headers(self, response: requests.Response) -> bool:
         """验证响应头的安全性"""
@@ -198,23 +179,42 @@ class HttpClient:
         try:
             socket.setdefaulttimeout(timeout)
             ip_str = socket.gethostbyname(host)
+            
+            # 缓存结果
             with self._dns_cache_lock:
                 self._dns_cache[host] = ip_str
+            
             logging.debug(f"DNS解析成功: {host} -> {ip_str}")
             return ip_str
-        except (socket.gaierror, socket.timeout) as e:
+        except socket.gaierror as e:
             logging.warning(f"DNS解析失败: {host} - {e}")
+            # 缓存失败结果，避免重复尝试
+            with self._dns_cache_lock:
+                self._dns_cache[host] = None
+            return None
+        except socket.timeout:
+            logging.warning(f"DNS解析超时: {host}")
+            with self._dns_cache_lock:
+                self._dns_cache[host] = None
+            return None
+        except Exception as e:
+            logging.error(f"DNS解析异常: {host} - {e}")
             with self._dns_cache_lock:
                 self._dns_cache[host] = None
             return None
 
     def close_all_sessions(self):
-        """关闭并清理所有会话"""
-        with self._session_pool_lock:
-            for session_info in self._session_pool.values():
-                try:
-                    session_info['session'].close()
-                except Exception:
-                    pass
-            self._session_pool.clear()
-            logging.debug("所有HTTP会话已关闭")
+        """关闭所有会话"""
+        try:
+            self.session_rotator.cleanup()
+            logging.info("所有HTTP会话已关闭")
+        except Exception as e:
+            logging.error(f"关闭会话时发生错误: {e}")
+    
+    def get_session_stats(self) -> Dict[str, Any]:
+        """获取会话统计信息"""
+        return self.session_rotator.get_pool_stats()
+    
+    def get_memory_stats(self) -> Dict[str, Any]:
+        """获取内存统计信息"""
+        return self.memory_manager.get_memory_stats()

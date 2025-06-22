@@ -4,16 +4,13 @@
 import argparse
 import os
 import yaml
-import importlib.metadata
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field, validator, ValidationError
 from .exceptions import ConfigurationError
+from .version import __version__, get_version_info
 
-# 专业版本管理
-try:
-    version = importlib.metadata.version("webloginbrute")
-except importlib.metadata.PackageNotFoundError:
-    version = "0.27.2"  # 开发环境fallback
+# 使用统一的版本管理
+version = __version__
 
 class Config(BaseModel):
     """
@@ -34,6 +31,19 @@ class Config(BaseModel):
     aggressive: int = Field(1, ge=0, le=3, description="对抗级别: 0(静默) 1(标准) 2(激进) 3(极限)")
     dry_run: bool = False
     verbose: bool = False
+    
+    # 内存管理配置
+    max_memory_mb: int = Field(500, ge=100, le=2000, description="最大内存使用量(MB)")
+    memory_warning_threshold: float = Field(0.8, ge=0.5, le=0.95, description="内存警告阈值")
+    memory_critical_threshold: float = Field(0.9, ge=0.7, le=0.99, description="内存临界阈值")
+    memory_cleanup_interval: int = Field(60, ge=30, le=300, description="内存清理间隔(秒)")
+    
+    # 会话管理配置
+    session_rotation_interval: int = Field(300, ge=60, le=1800, description="会话轮换间隔(秒)")
+    session_lifetime: int = Field(600, ge=300, le=3600, description="会话生命周期(秒)")
+    max_session_pool_size: int = Field(100, ge=10, le=500, description="最大会话池大小")
+    enable_session_rotation: bool = Field(True, description="是否启用会话轮换")
+    rotation_strategy: str = Field("time", description="轮换策略")
 
     @classmethod
     def from_args_and_yaml(cls) -> 'Config':
@@ -78,6 +88,19 @@ class Config(BaseModel):
         parser.add_argument('--verbose', action='store_true', help='详细输出')
         parser.add_argument('-V', '--version', action='version', version=f'%(prog)s {version}')
         
+        # 内存管理参数
+        parser.add_argument('--max-memory', type=int, help='最大内存使用量(MB)')
+        parser.add_argument('--memory-warning-threshold', type=float, help='内存警告阈值')
+        parser.add_argument('--memory-critical-threshold', type=float, help='内存临界阈值')
+        parser.add_argument('--memory-cleanup-interval', type=int, help='内存清理间隔(秒)')
+        
+        # 会话管理参数
+        parser.add_argument('--session-rotation-interval', type=int, help='会话轮换间隔(秒)')
+        parser.add_argument('--session-lifetime', type=int, help='会话生命周期(秒)')
+        parser.add_argument('--max-session-pool-size', type=int, help='最大会话池大小')
+        parser.add_argument('--disable-session-rotation', action='store_true', help='禁用会话轮换')
+        parser.add_argument('--rotation-strategy', choices=['time', 'request_count', 'error_rate'], help='轮换策略')
+        
         # 参数别名映射，提升兼容性
         parser.add_argument('--form-url', dest='url', help='登录表单页面URL (别名)')
         parser.add_argument('--submit-url', dest='action', help='登录表单提交URL (别名)')
@@ -90,6 +113,11 @@ class Config(BaseModel):
         
         defaults = {opt.dest: opt.default for opt in parser._actions}
         args = parser.parse_args()
+        
+        # 处理禁用会话轮换的参数
+        if args.disable_session_rotation:
+            args.enable_session_rotation = False
+        
         return args, defaults
 
     @validator('url', 'action', pre=True, always=True)

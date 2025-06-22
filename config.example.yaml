@@ -38,10 +38,19 @@ dry_run: false                                     # 测试模式，不实际发
 # 高级配置（可选）
 # max_retries: 3                                   # 最大重试次数
 # base_delay: 1.0                                  # 基础延迟时间（秒）
-# session_lifetime: 300                            # 会话生命周期（秒）
-# max_session_pool_size: 100                       # 最大会话池大小
-# enable_adaptive_rate_control: true               # 启用自适应速率控制
-# rate_adjustment_threshold: 5                     # 速率调整阈值
+
+# 内存管理配置（新增）
+# max_memory_mb: 500                              # 最大内存使用量(MB)
+# memory_warning_threshold: 0.8                   # 内存警告阈值(80%)
+# memory_critical_threshold: 0.9                  # 内存临界阈值(90%)
+# memory_cleanup_interval: 60                     # 内存清理间隔(秒)
+
+# 会话管理配置（新增）
+# session_rotation_interval: 300                  # 会话轮换间隔(秒)
+# session_lifetime: 600                           # 会话生命周期(秒)
+# max_session_pool_size: 100                      # 最大会话池大小
+# enable_session_rotation: true                   # 是否启用会话轮换
+# rotation_strategy: "time"                       # 轮换策略: time, request_count, error_rate
 
 # 安全配置（可选）
 # ip_whitelist: ["192.168.1.0/24"]                # IP白名单
