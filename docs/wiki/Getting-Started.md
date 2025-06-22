@@ -1,192 +1,86 @@
 # 快速开始
 
-**版本：0.27.1**
+本指南将带您在5分钟内完成一次基本的爆破测试。
 
-本指南将帮助你在5分钟内快速上手 WebLoginBrute，完成第一次 Web 登录暴力破解。
+## 1. 准备工作
 
-## 安装
+在开始之前，请确保您已完成 [安装指南](./Installation.md) 中的所有步骤。
 
-### 1. 克隆项目
+## 2. 准备目标和字典
 
-```bash
-git clone https://github.com/your-repo/WebLoginBrute.git
-cd WebLoginBrute
-```
+### a. 目标登录页面
+本次示例将使用 `https://redteamnotes.com/login` 作为演示目标。
 
-### 2. 安装依赖
+### b. 准备字典文件
+创建两个简单的文本文件：
+- `users.txt`:
+  ```
+  test
+  admin
+  guest
+  ```
+- `passwords.txt`:
+  ```
+  test
+  password
+  123456
+  ```
 
-```bash
-pip install -r requirements.txt
-```
+## 3. 编写配置文件
 
-### 3. 验证安装
-
-```bash
-python -m webloginbrute -V
-```
-
-应该显示：`webloginbrute 0.27.1`
-
-## 准备字典文件
-
-创建简单的测试字典：
-
-```bash
-# 创建用户名字典
-echo -e "admin\nuser\ntest" > users.txt
-
-# 创建密码字典
-echo -e "password\n123456\nadmin" > passwords.txt
-```
-
-## 基本使用
-
-### 方式一：命令行参数（推荐新手）
-
-```bash
-python -m webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 5 \
-  -v
-```
-
-### 方式二：配置文件（推荐复杂场景）
-
-1. 创建配置文件：
+在项目根目录创建一个名为 `config.yaml` 的文件，并填入以下内容：
 
 ```yaml
-# config.yaml
-url: "https://target.com/login"
-action: "https://target.com/login"
+# --- 核心配置 ---
+# 登录表单所在的页面 URL
+url: "https://redteamnotes.com/login"
+
+# 表单提交的目标 URL，通常与登录页面相同或在表单的 action 属性中指定
+action: "https://redteamnotes.com/login/authenticate"
+
+# 用户名和密码字典的路径
 users: "users.txt"
 passwords: "passwords.txt"
+
+# --- 结果判断 ---
+# 登录失败时，页面中会包含的特征字符串
+fail_string: "Invalid credentials"
+
+# --- 性能配置 ---
+# 并发线程数
 threads: 5
-verbose: true
 ```
 
-2. 运行程序：
+> **提示**: `fail_string` 是判断登录是否失败的关键。请根据实际目标页面的返回内容进行设置。
+
+## 4. 启动爆破
+
+打开终端，确保您已激活虚拟环境，然后运行以下命令：
 
 ```bash
 python -m webloginbrute --config config.yaml
 ```
 
-## 参数说明
+## 5. 查看结果
 
-### 必需参数
-- `-u, --url`: 登录表单页面URL
-- `-a, --action`: 登录表单提交URL
-- `-U, --users`: 用户名字典文件
-- `-P, --passwords`: 密码字典文件
+程序将开始执行爆破，您会在终端看到实时的进度和统计信息。
 
-### 常用可选参数
-- `-t, --threads`: 并发线程数（默认：5）
-- `-v, --verbose`: 详细输出
-- `-s, --csrf`: CSRF token字段名
-- `-r, --resume`: 断点续扫
+如果爆破成功，程序会高亮显示成功的用户名和密码，并自动停止。
 
-## 实战示例
-
-### 示例1：基础爆破
-
-```bash
-python -m webloginbrute \
-  -u http://192.168.1.100/login.php \
-  -a http://192.168.1.100/login.php \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10 \
-  -v
+```
+...
+[INFO] 尝试登录: test:test -> 失败
+[INFO] 尝试登录: test:password -> 失败
+[INFO] 登录成功: test:123456
+...
 ```
 
-### 示例2：带CSRF Token
-
-```bash
-python -m webloginbrute \
-  -u https://example.com/login \
-  -a https://example.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -s csrf_token \
-  -t 5 \
-  -v
-```
-
-### 示例3：断点续扫
-
-```bash
-# 第一次运行
-python -m webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10
-
-# 中断后继续
-python -m webloginbrute \
-  -u https://target.com/login \
-  -a https://target.com/login \
-  -U users.txt \
-  -P passwords.txt \
-  -t 10 \
-  -r
-```
-
-## 输出解读
-
-### 成功登录
-```
-2024-01-01 12:00:00 - INFO - 登录成功: admin:password
-```
-
-### 进度信息
-```
-2024-01-01 12:00:00 - INFO - 开始暴力破解，总共 9 个组合
-2024-01-01 12:00:00 - INFO - 过滤后剩余 9 个组合
-```
-
-### 统计报告
-```
-==================================================
-暴力破解完成
-==================================================
-总尝试次数: 9
-成功次数: 1
-超时错误: 0
-连接错误: 0
-HTTP错误: 0
-其他错误: 0
-重试次数: 0
-频率限制: 0
-验证码检测: 0
-总耗时: 5.23 秒
-平均响应时间: 0.581 秒
-==================================================
-```
-
-## 常见问题
-
-### Q: 提示"文件不存在"
-A: 检查字典文件路径是否正确，确保文件存在且有读取权限。
-
-### Q: 提示"URL必须以http://或https://开头"
-A: 确保URL包含协议前缀，如 `https://` 或 `http://`。
-
-### Q: 没有找到登录成功
-A: 检查URL是否正确，确认表单字段名是否匹配。
-
-### Q: 程序运行很慢
-A: 可以增加线程数 `-t 10`，或检查网络连接。
+至此，您已成功完成了一次基本的登录爆破！
 
 ## 下一步
 
-- 学习 [**配置详解**](Configuration.md) 了解所有参数
-- 了解 [**对抗级别**](Aggression-Levels.md) 提高隐蔽性
-- 掌握 [**高级功能**](Advanced-Features.md) 如断点续扫
-- 查看 [**故障排除**](Troubleshooting.md) 解决常见问题
+- 探索 [配置详解](./Configuration.md) 以了解更多高级选项。
+- 学习如何使用不同的 [对抗级别](./Aggression-Levels.md) 来应对不同的目标。
 
 ## 安全提醒
 
