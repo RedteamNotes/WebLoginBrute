@@ -113,7 +113,7 @@ webloginbrute \
 |------|--------|------|--------|------|
 | `--config` | 无 | YAML配置文件 | 无 | `--config config.yaml` |
 | `--csrf` | `-s` | CSRF token字段名 | 无 | `-s token` |
-| `--login-field` | `-l` | 额外登录字段名 | 无 | `-l domain` |
+| `--login-field` | `-f` | 额外登录字段名 | 无 | `-f domain` |
 | `--login-value` | `-w` | 额外登录字段值 | 无 | `-w example.com` |
 | `--cookie` | `-c` | Cookie文件 | 无 | `-c cookies.txt` |
 | `--timeout` | `-T` | 请求超时时间（秒） | 30 | `-T 60` |

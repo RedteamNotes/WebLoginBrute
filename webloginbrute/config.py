@@ -66,7 +66,7 @@ class Config(BaseModel):
         parser.add_argument('-U', '--users', help='用户名字典文件')
         parser.add_argument('-P', '--passwords', help='密码字典文件')
         parser.add_argument('-s', '--csrf', help='CSRF token字段名')
-        parser.add_argument('-l', '--login-field', help='额外的登录字段名')
+        parser.add_argument('-f', '--login-field', help='额外的登录字段名')
         parser.add_argument('-w', '--login-value', help='额外的登录字段值')
         parser.add_argument('-c', '--cookie', help='Cookie文件路径')
         parser.add_argument('-T', '--timeout', type=int, help='请求超时时间（秒）')
