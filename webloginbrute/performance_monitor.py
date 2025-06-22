@@ -533,3 +533,4 @@ def get_performance_summary():
     """获取性能摘要的便捷函数"""
     monitor = get_performance_monitor()
     return monitor.get_system_stats()
+ 

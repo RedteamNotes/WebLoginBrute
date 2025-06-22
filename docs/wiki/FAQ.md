@@ -10,16 +10,18 @@
 
 A: 安装步骤如下：
 
+你可以通过 `pip` 或从源码安装：
+
+**使用 Pip:**
 ```bash
-# 1. 克隆项目
-git clone https://github.com/your-repo/WebLoginBrute.git
+pip install webloginbrute
+```
+
+**从源码安装:**
+```bash
+git clone https://github.com/RedteamNotes/WebLoginBrute.git
 cd WebLoginBrute
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 验证安装
-webloginbrute -V
+pip install -e .
 ```
 
 ### Q: 提示 "pydantic 模块未找到" 怎么办？

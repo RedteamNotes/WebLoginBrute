@@ -19,7 +19,7 @@
 
 ```bash
 # 从源码安装
-git clone https://github.com/your-repo/WebLoginBrute.git
+git clone https://github.com/RedteamNotes/WebLoginBrute.git
 cd WebLoginBrute
 pip install -e .
 
@@ -31,13 +31,13 @@ pip install webloginbrute
 
 ```bash
 # 最简单的用法
-webloginbrute -u https://example.com/login -a https://example.com/auth -U users.txt -P passwords.txt
+webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/auth -U users.txt -P passwords.txt
 
 # 使用配置文件
 webloginbrute --config config.yaml
 
 # 详细输出模式
-webloginbrute -u https://example.com/login -a https://example.com/auth -U users.txt -P passwords.txt --verbose
+webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/auth -U users.txt -P passwords.txt --verbose
 ```
 
 ### 环境变量配置
@@ -83,8 +83,8 @@ WEBLOGINBRUTE_ENABLE_HEALTH_CHECK=true
 
 | 参数 | 短参数 | 描述 | 示例 |
 |------|--------|------|------|
-| `--url` | `-u` | 登录表单页面URL | `https://example.com/login` |
-| `--action` | `-a` | 登录表单提交URL | `https://example.com/auth` |
+| `--url` | `-u` | 登录表单页面URL | `https://redteamnotes.com/login` |
+| `--action` | `-a` | 登录表单提交URL | `https://redteamnotes.com/auth` |
 | `--users` | `-U` | 用户名字典文件 | `users.txt` |
 | `--passwords` | `-P` | 密码字典文件 | `passwords.txt` |
 | `--csrf` | `-s` | CSRF token字段名 | `csrf_token` |
@@ -251,9 +251,9 @@ python -m bandit -r webloginbrute
 ## 🤝 支持
 
 - 📖 [文档](docs/)
-- 🐛 [报告问题](https://github.com/your-repo/WebLoginBrute/issues)
-- 💬 [讨论](https://github.com/your-repo/WebLoginBrute/discussions)
-- 📧 邮箱: your-email@example.com
+- 🐛 [报告问题](https://github.com/RedteamNotes/WebLoginBrute/issues)
+- 💬 [讨论](https://github.com/RedteamNotes/WebLoginBrute/discussions)
+- 📧 邮箱: contact@redteamnotes.com
 
 ---
 

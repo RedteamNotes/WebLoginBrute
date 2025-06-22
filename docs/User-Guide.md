@@ -6,7 +6,7 @@
 
 ```bash
 # 从源码安装
-git clone https://github.com/your-repo/WebLoginBrute.git
+git clone https://github.com/RedteamNotes/WebLoginBrute.git
 cd WebLoginBrute
 pip install -e .
 
@@ -18,13 +18,13 @@ pip install webloginbrute
 
 ```bash
 # 最简单的用法
-webloginbrute -u https://example.com/login -a https://example.com/auth -U users.txt -P passwords.txt
+webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/auth -U users.txt -P passwords.txt
 
 # 使用配置文件
 webloginbrute --config config.yaml
 
 # 详细输出模式
-webloginbrute -u https://example.com/login -a https://example.com/auth -U users.txt -P passwords.txt --verbose
+webloginbrute -u https://redteamnotes.com/login -a https://redteamnotes.com/auth -U users.txt -P passwords.txt --verbose
 ```
 
 ## 配置选项
@@ -33,8 +33,8 @@ webloginbrute -u https://example.com/login -a https://example.com/auth -U users.
 
 | 参数 | 短参数 | 描述 | 示例 |
 |------|--------|------|------|
-| `--url` | `-u` | 登录表单页面URL | `https://example.com/login` |
-| `--action` | `-a` | 登录表单提交URL | `https://example.com/auth` |
+| `--url` | `-u` | 登录表单页面URL | `https://redteamnotes.com/login` |
+| `--action` | `-a` | 登录表单提交URL | `https://redteamnotes.com/auth` |
 | `--users` | `-U` | 用户名字典文件 | `users.txt` |
 | `--passwords` | `-P` | 密码字典文件 | `passwords.txt` |
 | `--csrf` | `-s` | CSRF token字段名 | `csrf_token` |
@@ -68,8 +68,8 @@ webloginbrute -u https://example.com/login -a https://example.com/auth -U users.
 
 ```yaml
 # config.yaml
-url: "https://example.com/login"
-action: "https://example.com/auth"
+url: "https://redteamnotes.com/login"
+action: "https://redteamnotes.com/auth"
 users: "wordlists/users.txt"
 passwords: "wordlists/passwords.txt"
 
@@ -271,7 +271,7 @@ webloginbrute --config config.yaml
 webloginbrute --timeout 60
 
 # 检查网络连接
-ping example.com
+ping redteamnotes.com
 ```
 
 #### 2. 内存不足
@@ -387,7 +387,7 @@ rm -f *.log *.json
 webloginbrute --proxy socks5://vpn:1080
 
 # 限制目标范围
-webloginbrute --allowed-domains example.com
+webloginbrute --allowed-domains redteamnotes.com
 ```
 
 ## 示例场景
@@ -397,8 +397,8 @@ webloginbrute --allowed-domains example.com
 ```bash
 # 目标：测试常见用户名密码组合
 webloginbrute \
-  -u https://example.com/login \
-  -a https://example.com/auth \
+  -u https://redteamnotes.com/login \
+  -a https://redteamnotes.com/auth \
   -U common_users.txt \
   -P common_passwords.txt \
   -t 10 \
@@ -422,8 +422,8 @@ webloginbrute \
 ```bash
 # 目标：最小化被检测的风险
 webloginbrute \
-  -u https://example.com/login \
-  -a https://example.com/auth \
+  -u https://redteamnotes.com/login \
+  -a https://redteamnotes.com/auth \
   -U users.txt \
   -P passwords.txt \
   --aggressive 0 \
@@ -436,8 +436,8 @@ webloginbrute \
 ```bash
 # 目标：快速测试大量组合
 webloginbrute \
-  -u https://example.com/login \
-  -a https://example.com/auth \
+  -u https://redteamnotes.com/login \
+  -a https://redteamnotes.com/auth \
   -U large_users.txt \
   -P large_passwords.txt \
   --aggressive 3 \
@@ -453,8 +453,8 @@ webloginbrute \
 from webloginbrute import Config, WebLoginBrute
 
 config = Config(
-    url="https://example.com/login",
-    action="https://example.com/auth",
+    url="https://redteamnotes.com/login",
+    action="https://redteamnotes.com/auth",
     users="users.txt",
     passwords="passwords.txt",
     threads=10

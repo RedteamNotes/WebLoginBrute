@@ -239,8 +239,8 @@ from webloginbrute import Config, WebLoginBrute
 
 # 创建配置
 config = Config(
-    url="https://example.com/login",
-    action="https://example.com/auth",
+    url="https://redteamnotes.com/login",
+    action="https://redteamnotes.com/auth",
     users="users.txt",
     passwords="passwords.txt",
     threads=10,
@@ -263,8 +263,8 @@ from webloginbrute.health_check import HealthCheck
 
 # 创建配置
 config = Config(
-    url="https://example.com/login",
-    action="https://example.com/auth",
+    url="https://redteamnotes.com/login",
+    action="https://redteamnotes.com/auth",
     users="users.txt",
     passwords="passwords.txt",
     enable_health_check=True,
