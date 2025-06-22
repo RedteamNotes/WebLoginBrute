@@ -16,14 +16,14 @@ from urllib.parse import urlparse
 
 import requests
 from requests import Session
-import http.cookiejar as cookielib
 from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-from .constants import USER_AGENTS, BROWSER_HEADERS
-from .logger import setup_logging
+from ..constants import USER_AGENTS, BROWSER_HEADERS
 from .memory_manager import get_memory_manager
 
-log = setup_logging()
+# 初始化日志
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -101,7 +101,7 @@ class SessionRotator:
 
         self._monitoring = True
         self._schedule_rotation()
-        logging.info("会话轮换监控已启动")
+        log.info("会话轮换监控已启动")
 
     def stop_rotation_monitoring(self):
         """停止会话轮换监控"""
@@ -109,7 +109,7 @@ class SessionRotator:
         if self._rotation_timer:
             self._rotation_timer.cancel()
             self._rotation_timer = None
-        logging.info("会话轮换监控已停止")
+        log.info("会话轮换监控已停止")
 
     def _schedule_rotation(self):
         """安排下一次轮换检查"""
@@ -163,7 +163,7 @@ class SessionRotator:
                 self._cleanup_expired_sessions()
 
         except Exception as e:
-            logging.error(f"会话轮换检查失败: {e}")
+            log.error(f"会话轮换检查失败: {e}")
         finally:
             # 安排下一次检查
             self._schedule_rotation()
@@ -177,10 +177,10 @@ class SessionRotator:
             try:
                 session_info.session.close()
             except Exception as e:
-                logging.debug(f"关闭会话失败: {e}")
+                log.debug(f"关闭会话失败: {e}")
 
             # 创建新会话
-            new_session = self._create_new_session(session_key)
+            new_session = self._create_new_session()
             new_session_info = SessionInfo(new_session, time.time())
             new_session_info.rotation_count = session_info.rotation_count + 1
 
@@ -188,10 +188,10 @@ class SessionRotator:
             self._session_pool[session_key] = new_session_info
 
             self.stats["total_rotations"] += 1
-            logging.info(f"会话轮换完成: {session_key} - {reason}")
+            log.info(f"会话轮换完成: {session_key} - {reason}")
 
         except Exception as e:
-            logging.error(f"会话轮换失败: {session_key} - {e}")
+            log.error(f"会话轮换失败: {session_key} - {e}")
 
     def _cleanup_expired_sessions(self):
         """清理过期会话"""
@@ -211,11 +211,11 @@ class SessionRotator:
                 session_info.session.close()
                 del self._session_pool[session_key]
                 self.stats["session_cleanups"] += 1
-                logging.debug(f"清理过期会话: {session_key}")
+                log.debug(f"清理过期会话: {session_key}")
             except Exception as e:
-                logging.error(f"清理会话失败: {session_key} - {e}")
+                log.error(f"清理会话失败: {session_key} - {e}")
 
-    def _create_new_session(self, session_key: str) -> Session:
+    def _create_new_session(self) -> Session:
         """创建新会话"""
         session = requests.Session()
         session.max_redirects = 5
@@ -231,12 +231,15 @@ class SessionRotator:
         # 这里可以根据session_key解析出cookie文件路径
         # 暂时跳过cookie加载，可以在具体使用时配置
 
+        retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
         self.stats["session_creations"] += 1
         return session
 
-    def get_session(
-        self, session_key: str, cookie_file: Optional[str] = None
-    ) -> Session:
+    def get_session(self, session_key: str) -> Session:
         """获取或创建会话"""
         with self.lock:
             if session_key in self._session_pool:
@@ -251,17 +254,8 @@ class SessionRotator:
                     self._rotate_session(session_key, "会话过期")
 
             # 创建新会话
-            session = self._create_new_session(session_key)
+            session = self._create_new_session()
             session_info = SessionInfo(session, time.time())
-
-            # 加载cookies
-            if cookie_file:
-                try:
-                    jar = cookielib.MozillaCookieJar(cookie_file)
-                    jar.load(ignore_discard=True, ignore_expires=True)
-                    session.cookies.update(jar)
-                except Exception as e:
-                    logging.warning(f"加载Cookie文件失败: {e}")
 
             # 添加到会话池
             self._session_pool[session_key] = session_info
@@ -285,9 +279,9 @@ class SessionRotator:
             session_info = self._session_pool[oldest_key]
             session_info.session.close()
             del self._session_pool[oldest_key]
-            logging.debug(f"移除最旧会话: {oldest_key}")
+            log.debug(f"移除最旧会话: {oldest_key}")
         except Exception as e:
-            logging.error(f"移除会话失败: {oldest_key} - {e}")
+            log.error(f"移除会话失败: {oldest_key} - {e}")
 
     def record_request(self, session_key: str, success: bool = True):
         """记录请求结果"""
@@ -352,21 +346,24 @@ class SessionRotator:
                 try:
                     session_info.session.close()
                 except Exception as e:
-                    logging.debug(f"关闭会话失败: {session_key} - {e}")
+                    log.debug(f"关闭会话失败: {session_key} - {e}")
 
             self._session_pool.clear()
-            logging.info("所有会话已清理")
+            log.info("所有会话已清理")
 
 
 # 全局会话轮换器实例
 _global_session_rotator: Optional[SessionRotator] = None
+_lock = Lock()
 
 
-def get_session_rotator() -> SessionRotator:
+def get_session_rotator(config: Optional[SessionConfig] = None) -> SessionRotator:
     """获取全局会话轮换器"""
     global _global_session_rotator
     if _global_session_rotator is None:
-        _global_session_rotator = SessionRotator()
+        with _lock:
+            if _global_session_rotator is None:
+                _global_session_rotator = SessionRotator(config)
     return _global_session_rotator
 
 
@@ -378,139 +375,3 @@ def init_session_rotator(config: Optional[SessionConfig] = None) -> SessionRotat
 
     _global_session_rotator = SessionRotator(config)
     return _global_session_rotator
-
-
-class SessionManager:
-    def __init__(self):
-        self._pool = []
-        self._sessions = {}
-        self._lock = Lock()
-
-    def get_session(
-        self, session_id: int, cookie_file: Optional[str] = None
-    ) -> Session:
-        """获取或创建会话"""
-        with self._lock:
-            if session_id in self._sessions:
-                session_data = self._sessions[session_id]
-                session = session_data["session"]
-
-                # 检查会话是否仍然有效
-                if session_data["age"] < session_data["session_lifetime"]:
-                    session_data["last_used"] = time.time()
-                    return session
-                else:
-                    # 会话过期，轮换
-                    self._rotate_session(session_id, "会话过期")
-
-            # 创建新会话
-            session = get_session_rotator().get_session(session_id, cookie_file)
-            session_data = {
-                "session": session,
-                "created_time": time.time(),
-                "last_used": time.time(),
-                "request_count": 0,
-                "error_count": 0,
-                "success_count": 0,
-                "rotation_count": 0,
-                "session_lifetime": get_session_rotator().config.session_lifetime,
-            }
-
-            # 添加到会话池
-            with self._lock:
-                self._sessions[session_id] = session_data
-                self._pool.append(session)
-                log.debug(f"会话已返回到池中. 当前池大小: {len(self._pool)}")
-
-            return session
-
-    def _rotate_session(self, session_id: int, reason: str):
-        """轮换指定会话"""
-        with self._lock:
-            if session_id in self._sessions:
-                session_data = self._sessions[session_id]
-                session = session_data["session"]
-
-                # 关闭旧会话
-                try:
-                    session.close()
-                except Exception as e:
-                    log.debug(f"关闭会话失败: {e}")
-
-                # 创建新会话
-                new_session = get_session_rotator().get_session(session_id)
-                new_session_data = {
-                    "session": new_session,
-                    "created_time": time.time(),
-                    "last_used": time.time(),
-                    "request_count": 0,
-                    "error_count": 0,
-                    "success_count": 0,
-                    "rotation_count": session_data["rotation_count"] + 1,
-                    "session_lifetime": get_session_rotator().config.session_lifetime,
-                }
-
-                # 替换会话
-                self._sessions[session_id] = new_session_data
-
-                log.info(f"会话轮换完成: {session_id} - {reason}")
-
-    def record_request(self, session_id: int):
-        """记录会话的请求"""
-        with self._lock:
-            if session_id in self._sessions:
-                session_data = self._sessions[session_id]
-                session_data["request_count"] += 1
-                session_data["last_used"] = time.time()
-
-                if session_data["request_count"] > 1000:
-                    log.info(f"会话 {session_id} 请求数达到上限，将会轮换")
-                    session_data["should_rotate"] = True
-
-    def record_error(self, session_id: int):
-        """记录会话的错误"""
-        with self._lock:
-            if session_id in self._sessions:
-                session_data = self._sessions[session_id]
-                session_data["error_count"] += 1
-                session_data["last_used"] = time.time()
-
-                if session_data["error_count"] > 3:
-                    log.warning(f"会话 {session_id} 错误率达到阈值，将会轮换")
-                    session_data["should_rotate"] = True
-
-    def cleanup(self):
-        """清理所有会话"""
-        with self._lock:
-            for session_id, session_data in self._sessions.items():
-                try:
-                    session_data["session"].close()
-                except Exception as e:
-                    log.debug(f"关闭会话失败: {session_id} - {e}")
-
-            self._pool.clear()
-            self._sessions.clear()
-            log.info("所有会话已清理")
-
-    @property
-    def pool_size(self) -> int:
-        """返回会话池大小"""
-        return len(self._pool)
-
-    def get_pool_stats(self) -> dict:
-        """获取会话池统计信息"""
-        with self._lock:
-            total_requests = sum(s["request_count"] for s in self._sessions.values())
-            total_errors = sum(s["error_count"] for s in self._sessions.values())
-            avg_error_rate = (
-                (total_errors / total_requests) if total_requests > 0 else 0
-            )
-
-            return {
-                "total_sessions": len(self._sessions),
-                "active_sessions": len(self._sessions) - len(self._pool),
-                "idle_sessions": len(self._pool),
-                "total_requests": total_requests,
-                "total_errors": total_errors,
-                "avg_error_rate": avg_error_rate,
-            }

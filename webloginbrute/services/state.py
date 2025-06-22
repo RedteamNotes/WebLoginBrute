@@ -12,7 +12,8 @@ import hashlib
 import secrets
 from typing import Tuple, Set, Dict, Any
 
-from .exceptions import ConfigurationError
+from ..config.models import Config
+from ..utils.exceptions import ConfigurationError
 from .security import SecurityManager
 
 # 改进的密钥管理机制
@@ -50,7 +51,7 @@ class StateManager:
     管理程序的持久化状态，特别是已尝试的组合和进度文件的读写。
     """
 
-    def __init__(self, config: object):
+    def __init__(self, config: Config):
         self.config = config
         self.lock = RLock()
 

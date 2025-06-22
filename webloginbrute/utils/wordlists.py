@@ -6,7 +6,7 @@ import os
 import chardet
 from functools import lru_cache
 from typing import Iterator, List
-from .memory_manager import get_memory_manager
+from ..services.memory_manager import get_memory_manager
 
 from .exceptions import ConfigurationError, MemoryError
 

@@ -9,14 +9,14 @@ import re
 from urllib.parse import urlparse
 import json
 import time
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, List
 import requests
 
-from .constants import SECURITY_CONFIG
-from .exceptions import SecurityError
-from .logger import setup_logging
+from ..constants import SECURITY_CONFIG
+from ..utils.exceptions import SecurityError
 
-log = setup_logging()
+# 设置日志
+logging.basicConfig(level=logging.INFO)
 
 # 危险字符集合，使用 set 提升检测性能
 DANGEROUS_CHARS = {
@@ -239,8 +239,8 @@ class SecurityManager:
         生成安全报告
         """
         if not all(k in report for k in ["passed", "failed", "details"]):
-            log.warning("安全报告格式无效")
-            return
+            logging.warning("安全报告格式无效")
+            return ""
 
         summary = f"### 安全审计摘要 (等级: {self.security_level})\n"
         summary += f"- **通过:** {report['passed']} 项\n"
@@ -249,23 +249,24 @@ class SecurityManager:
         if report["failed"] > 0:
             summary += "\n**失败项详情:**\n"
             for detail in report["details"]:
-                if not detail["success"]:
+                if detail["status"] == "failed":
                     summary += f"- **{detail['check_name']}:** {detail['message']}\n"
 
-        log.info("生成安全报告")
+        logging.info("生成安全报告")
         return summary
 
     def _save_report(self, report: Dict[str, Any], format: str = "json"):
         """
         保存安全报告到文件
         """
+        filename = f"security_report_{int(time.time())}.{format}"
+
         if format == "json":
-            filename = f"security_report_{int(time.time())}.json"
             with open(filename, "w") as f:
                 json.dump(report, f, indent=4)
-            log.info(f"安全报告已保存到 {filename}")
+            logging.info(f"安全报告已保存到 {filename}")
         else:
-            log.warning(f"不支持的报告格式: {format}")
+            logging.warning(f"不支持的报告格式: {format}")
 
     def _is_rate_limited(self, response: requests.Response) -> bool:
         """
@@ -273,7 +274,7 @@ class SecurityManager:
         """
         # 简单的速率限制检查
         if response.status_code == 429:
-            log.warning("检测到速率限制 (HTTP 429)")
+            logging.warning("检测到速率限制 (HTTP 429)")
             return True
 
         # 可以在这里添加更复杂的检查，例如检查响应内容
@@ -281,13 +282,11 @@ class SecurityManager:
         return False
 
     def _is_suspicious_redirect(self, response: requests.Response) -> bool:
-        """
-        检查是否是可疑的重定向
-        """
-        if response.is_redirect:
+        """检查可疑重定向"""
+        if response.status_code in [301, 302, 307, 308]:
             location = response.headers.get("Location", "")
             if "login" not in location and "error" not in location:
-                log.warning(f"检测到可疑重定向: {location}")
+                logging.warning(f"检测到可疑重定向: {location}")
                 return True
         return False
 
@@ -298,4 +297,4 @@ class SecurityManager:
     def set_security_level(self, level: Literal["low", "standard", "high", "paranoid"]):
         """设置安全级别"""
         self.security_level = level
-        log.info(f"安全级别已设置为: {level}")
+        logging.info(f"安全级别已设置为: {level}")

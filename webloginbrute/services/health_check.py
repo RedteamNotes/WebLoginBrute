@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import json
-from typing import Dict, Any, List, Callable, Union
+from typing import Dict, Any, List, Callable, Union, Optional
 
 try:
     import psutil
@@ -26,8 +26,9 @@ except ImportError:
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .reporting import Report
-from .logger import setup_logging
+from ..config.models import Config
+from ..utils.exceptions import HealthCheckError
+from ..logger import setup_logging
 
 log = setup_logging()
 
@@ -85,14 +86,13 @@ class SystemMetrics:
 class HealthChecker:
     """系统健康检查器"""
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[Config] = None):
         self.config = config
         self.lock = threading.Lock()
         self.check_results: List[HealthCheckResult] = []
         self.metrics_history: List[SystemMetrics] = []
         self.max_history_size = 100
         self.check_callbacks: Dict[str, List[Callable]] = {}
-        self.reporter = Report()
         self.network_checks: List[Callable[[], bool]] = []
         self.system_checks: List[
             Callable[[], Union[HealthCheckResult, List[HealthCheckResult]]]
@@ -366,10 +366,10 @@ class HealthChecker:
             )
 
         # 检查目标URL可访问性
-        from .http_client import HttpClient
-
-        client = HttpClient(self.config)
         try:
+            # 延迟导入以避免循环依赖
+            from .http_client import HttpClient
+            client = HttpClient(self.config)
             client.get(self.config.url)
             results.append(
                 HealthCheckResult(
@@ -718,43 +718,57 @@ class HealthChecker:
 
             return [metrics.to_dict() for metrics in recent_metrics]
 
-    def export_report(self, file_path: str = None) -> str:
-        """导出健康检查报告"""
-        summary = self.get_summary()
-        report_str = self.reporter.generate_report(summary, format="json")
+    def export_report(self, file_path: Optional[str] = None) -> str:
+        """
+        导出健康检查报告为JSON文件。
+        :param file_path: 报告文件路径。如果为None，则自动生成文件名。
+        :return: 报告文件的实际路径。
+        """
+        report_data = self._get_final_report()
+        
+        if file_path is None:
+            file_path = f"health_report_{int(time.time())}.json"
 
-        if file_path:
+        try:
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(report_str)
+                json.dump(report_data, f, indent=4, ensure_ascii=False)
+            logging.info(f"健康检查报告已导出到: {file_path}")
             return file_path
-        return report_str
+        except IOError as e:
+            logging.error(f"导出健康检查报告失败: {e}")
+            raise HealthCheckError(f"无法写入报告文件: {file_path}") from e
 
     def _get_final_report(self) -> Dict[str, Any]:
-        """获取最终报告"""
-        return self.reporter.get_report()
+        summary = self.get_summary()
+        return {
+            "report_generated_at": datetime.now().isoformat(),
+            "summary": summary,
+            "checks": [result.to_dict() for result in self.check_results],
+        }
 
 
 # 全局健康检查器实例
-health_checker = None
+_health_checker_instance: Optional[HealthChecker] = None
 
 
-def get_health_checker(config=None) -> HealthChecker:
+def get_health_checker(config: Optional[Config] = None) -> HealthChecker:
     """获取健康检查器单例"""
-    global health_checker
-    if health_checker is None:
-        health_checker = HealthChecker(config)
-    elif config is not None:
-        health_checker.config = config
-    return health_checker
+    global _health_checker_instance
+    if _health_checker_instance is None:
+        _health_checker_instance = HealthChecker(config)
+    return _health_checker_instance
 
 
-def run_health_checks(config=None) -> List[HealthCheckResult]:
+def run_health_checks(config: Optional[Config] = None) -> List[HealthCheckResult]:
     """运行健康检查并返回结果"""
     checker = get_health_checker(config)
     return checker.run_all_checks()
 
 
-def get_health_summary() -> Dict[str, Any]:
+def get_health_summary() -> Optional[Dict[str, Any]]:
     """获取健康检查摘要"""
-    return health_checker.get_summary()
+    checker = get_health_checker()
+    if checker:
+        return checker.get_summary()
+    return None
  
